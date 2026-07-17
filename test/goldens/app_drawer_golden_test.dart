@@ -1,3 +1,6 @@
+@Tags(['golden'])
+library;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
@@ -26,7 +29,6 @@ void main() {
             theme: ThemeData(
               brightness: brightness,
               useMaterial3: true,
-              fontFamily: 'Arial',
             ),
             home: const RepaintBoundary(child: AppDrawer()),
           ),

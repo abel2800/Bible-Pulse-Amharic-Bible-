@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:screenshot/screenshot.dart';
-import 'package:image_gallery_saver/image_gallery_saver.dart';
+import 'package:image_gallery_saver_plus/image_gallery_saver_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -368,7 +368,7 @@ class _WallpaperGeneratorScreenState extends State<WallpaperGeneratorScreen> {
 
       final image = await _screenshotController.capture();
       if (image != null) {
-        await ImageGallerySaver.saveImage(image);
+        await ImageGallerySaverPlus.saveImage(image);
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(

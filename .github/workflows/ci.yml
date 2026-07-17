@@ -11,7 +11,7 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
@@ -23,16 +23,16 @@ jobs:
         run: flutter analyze lib test integration_test
       - name: Validate licensed content
         run: python tools/content/validate_manifest.py
-      - name: Run unit, widget, accessibility, migration, and golden tests
-        run: flutter test
+      - name: Run unit, widget, accessibility, and migration tests
+        run: flutter test --exclude-tags golden
       - name: Build web release
         run: flutter build web --release --no-wasm-dry-run
 
   android:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
@@ -55,7 +55,7 @@ jobs:
   linux:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: sudo apt-get update && sudo apt-get install -y ninja-build libgtk-3-dev
       - uses: subosito/flutter-action@v2
         with:
@@ -71,7 +71,7 @@ jobs:
   apple:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
@@ -83,12 +83,14 @@ jobs:
   windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
       - run: flutter pub get
+      - name: Run Windows golden tests
+        run: flutter test test/goldens
       - run: flutter build windows --release
       - uses: actions/upload-artifact@v4
         with:
@@ -98,14 +100,14 @@ jobs:
   firebase-emulators:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
-          node-version: "20"
-      - uses: actions/setup-java@v4
+          node-version: "24"
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: "17"
+          java-version: "21"
       - run: npm ci
         working-directory: firebase-tests
       - name: Test Firestore authorization rules
@@ -114,17 +116,18 @@ jobs:
   web-integration:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
+      - run: sudo apt-get update && sudo apt-get install -y xvfb
       - uses: nanasess/setup-chromedriver@v2
       - run: flutter pub get
       - name: Run browser integration smoke test
         run: |
           chromedriver --port=4444 &
-          flutter drive \
+          xvfb-run -a flutter drive \
             --driver=test_driver/integration_test.dart \
             --target=integration_test/app_smoke_test.dart \
             -d chrome
