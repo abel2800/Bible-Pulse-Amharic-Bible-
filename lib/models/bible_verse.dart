@@ -4,7 +4,7 @@ class BibleVerse {
   final int chapter;
   final int verse;
   final String text;
-  
+
   BibleVerse({
     required this.id,
     required this.book,
@@ -12,7 +12,7 @@ class BibleVerse {
     required this.verse,
     required this.text,
   });
-  
+
   factory BibleVerse.fromJson(Map<String, dynamic> json) {
     return BibleVerse(
       id: json['id'] as int,
@@ -22,7 +22,7 @@ class BibleVerse {
       text: json['text'] as String,
     );
   }
-  
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -33,4 +33,3 @@ class BibleVerse {
     };
   }
 }
-

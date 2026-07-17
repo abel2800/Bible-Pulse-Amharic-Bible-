@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:ui';
 import '../models/devotional.dart';
 import '../services/devotional_service.dart';
 
@@ -8,7 +7,6 @@ class DevotionalProvider with ChangeNotifier {
 
   Devotional? _todayDevotional;
   bool _isLoading = false;
-  Locale? _currentLocale;
 
   Devotional? get todayDevotional => _todayDevotional;
   bool get isLoading => _isLoading;
@@ -17,20 +15,12 @@ class DevotionalProvider with ChangeNotifier {
     loadTodayDevotional();
   }
 
-  DevotionalProvider updateLocale(Locale locale) {
-    if (_currentLocale == null || _currentLocale!.languageCode != locale.languageCode) {
-      _currentLocale = locale;
-      loadTodayDevotional(locale: locale);
-    }
-    return this;
-  }
-
-  Future<void> loadTodayDevotional({Locale? locale}) async {
+  Future<void> loadTodayDevotional() async {
     _isLoading = true;
     notifyListeners();
 
     try {
-      _todayDevotional = await _devotionalService.getTodayDevotional(locale: locale);
+      _todayDevotional = await _devotionalService.getTodayDevotional();
     } catch (e) {
       debugPrint('Error loading devotional: $e');
     }
@@ -40,7 +30,6 @@ class DevotionalProvider with ChangeNotifier {
   }
 
   Future<void> refreshDevotional() async {
-    await loadTodayDevotional(locale: _currentLocale);
+    await loadTodayDevotional();
   }
 }
-

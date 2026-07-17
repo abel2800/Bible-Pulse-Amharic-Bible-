@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-17",
+  "assets": [
+    {
+      "id": "scripture.web",
+      "feature": "scripture",
+      "path": "assets/bible/web.json",
+      "versionId": "WEB",
+      "language": "en",
+      "canon": "protestant-66",
+      "source": "https://ebible.org/engwebp/",
+      "license": "Public Domain",
+      "attribution": "World English Bible, eBible.org",
+      "commercialUse": true,
+      "redistribution": true,
+      "approved": true,
+      "expiresAt": null,
+      "sha256": "e6393862d54e790a350983b4b97d5a9bc99f1aaff27bade625f5db4671a43d91"
+    }
+  ]
+}

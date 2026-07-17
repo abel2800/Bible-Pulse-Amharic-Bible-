@@ -5,7 +5,7 @@ class Devotional {
   final String verseReference;
   final String dailyPrayer;
   final String? imageUrl;
-  
+
   Devotional({
     required this.id,
     required this.date,
@@ -14,7 +14,7 @@ class Devotional {
     required this.dailyPrayer,
     this.imageUrl,
   });
-  
+
   factory Devotional.fromJson(Map<String, dynamic> json) {
     return Devotional(
       id: json['id'] as String,
@@ -25,7 +25,7 @@ class Devotional {
       imageUrl: json['imageUrl'] as String?,
     );
   }
-  
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -37,4 +37,3 @@ class Devotional {
     };
   }
 }
-

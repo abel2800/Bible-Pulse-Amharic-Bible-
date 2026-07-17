@@ -13,8 +13,7 @@ class Hymn {
   final String? tune;
   final String? scripture;
   final String? audioUrl;
-  final bool isFavorite;
-  
+
   Hymn({
     required this.id,
     required this.number,
@@ -30,9 +29,8 @@ class Hymn {
     this.tune,
     this.scripture,
     this.audioUrl,
-    this.isFavorite = false,
   }) : tags = tags ?? [];
-  
+
   factory Hymn.fromJson(Map<String, dynamic> json) {
     return Hymn(
       id: json['id'] ?? '',
@@ -49,10 +47,9 @@ class Hymn {
       tune: json['tune'],
       scripture: json['scripture'],
       audioUrl: json['audioUrl'],
-      isFavorite: json['isFavorite'] ?? false,
     );
   }
-  
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -69,125 +66,22 @@ class Hymn {
       'tune': tune,
       'scripture': scripture,
       'audioUrl': audioUrl,
-      'isFavorite': isFavorite,
     };
   }
-  
-  Hymn copyWith({
-    String? id,
-    String? number,
-    String? title,
-    String? subtitle,
-    List<String>? verses,
-    String? chorus,
-    String? author,
-    String? composer,
-    int? year,
-    String? category,
-    List<String>? tags,
-    String? tune,
-    String? scripture,
-    String? audioUrl,
-    bool? isFavorite,
-  }) {
-    return Hymn(
-      id: id ?? this.id,
-      number: number ?? this.number,
-      title: title ?? this.title,
-      subtitle: subtitle ?? this.subtitle,
-      verses: verses ?? this.verses,
-      chorus: chorus ?? this.chorus,
-      author: author ?? this.author,
-      composer: composer ?? this.composer,
-      year: year ?? this.year,
-      category: category ?? this.category,
-      tags: tags ?? this.tags,
-      tune: tune ?? this.tune,
-      scripture: scripture ?? this.scripture,
-      audioUrl: audioUrl ?? this.audioUrl,
-      isFavorite: isFavorite ?? this.isFavorite,
-    );
-  }
-  
+
   String get fullText {
     final buffer = StringBuffer();
-    
+
     for (var i = 0; i < verses.length; i++) {
       buffer.writeln('${i + 1}. ${verses[i]}');
-      
+
       if (chorus != null && i < verses.length - 1) {
         buffer.writeln('\nChorus:');
         buffer.writeln(chorus);
         buffer.writeln();
       }
     }
-    
+
     return buffer.toString();
   }
 }
-
-class HymnCategory {
-  final String id;
-  final String name;
-  final String? description;
-  final String? iconName;
-  
-  HymnCategory({
-    required this.id,
-    required this.name,
-    this.description,
-    this.iconName,
-  });
-  
-  static List<HymnCategory> get defaultCategories => [
-    HymnCategory(
-      id: 'worship',
-      name: 'Worship & Praise',
-      description: 'Songs of worship and adoration',
-      iconName: 'music',
-    ),
-    HymnCategory(
-      id: 'thanksgiving',
-      name: 'Thanksgiving',
-      description: 'Songs of gratitude',
-      iconName: 'heart',
-    ),
-    HymnCategory(
-      id: 'prayer',
-      name: 'Prayer & Devotion',
-      description: 'Devotional hymns',
-      iconName: 'hands_praying',
-    ),
-    HymnCategory(
-      id: 'christmas',
-      name: 'Christmas',
-      description: 'Christmas carols',
-      iconName: 'star',
-    ),
-    HymnCategory(
-      id: 'easter',
-      name: 'Easter',
-      description: 'Easter hymns',
-      iconName: 'cross',
-    ),
-    HymnCategory(
-      id: 'missions',
-      name: 'Missions & Evangelism',
-      description: 'Songs about spreading the gospel',
-      iconName: 'globe',
-    ),
-    HymnCategory(
-      id: 'comfort',
-      name: 'Comfort & Assurance',
-      description: 'Songs of comfort and peace',
-      iconName: 'dove',
-    ),
-    HymnCategory(
-      id: 'consecration',
-      name: 'Consecration & Dedication',
-      description: 'Songs of commitment',
-      iconName: 'flame',
-    ),
-  ];
-}
-

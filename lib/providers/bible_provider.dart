@@ -1,13 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/bible_verse.dart';
 import '../models/bible_book.dart';
 import '../services/bible_service.dart';
+import '../services/bible_search_service.dart';
 
 class BibleProvider with ChangeNotifier {
-  final BibleService _bibleService = BibleService();
-  
-  String _currentVersion = 'KJV';
-  String _currentLanguage = 'en';
+  BibleProvider({BibleService? bibleService})
+      : _bibleService = bibleService ?? BibleService() {
+    _searchService = BibleSearchService(bibleService: _bibleService);
+    ready = _initialize();
+  }
+
+  final BibleService _bibleService;
+  late final BibleSearchService _searchService;
+  late final Future<void> ready;
+  int _searchRequest = 0;
+
+  String _currentVersion = 'WEB';
   List<BibleBook> _books = [];
   List<BibleVerse> _currentChapter = [];
   List<BibleVerse> _searchResults = [];
@@ -18,9 +28,8 @@ class BibleProvider with ChangeNotifier {
   BibleBook? _selectedBook;
   int _selectedChapter = 1;
   bool _isLoading = false;
-  
+
   String get currentVersion => _currentVersion;
-  String get currentLanguage => _currentLanguage;
   List<BibleBook> get books => _books;
   List<BibleVerse> get currentChapter => _currentChapter;
   BibleBook? get selectedBook => _selectedBook;
@@ -31,54 +40,54 @@ class BibleProvider with ChangeNotifier {
   int? get pendingScrollVerse => _pendingScrollVerse;
   int? get pendingScrollBookId => _pendingScrollBookId;
   int? get pendingScrollChapter => _pendingScrollChapter;
-  
-  List<Map<String, dynamic>> get bookmarks => _bookmarks;
-  List<Map<String, dynamic>> get notes => _notes;
-  List<Map<String, dynamic>> get highlights => _highlights;
-  BibleVerse? get lastReadVerse => _lastReadVerse;
+
   BibleVerse? get verseOfTheDay => _verseOfTheDay;
-  
-  List<Map<String, dynamic>> _bookmarks = [];
-  List<Map<String, dynamic>> _notes = [];
-  List<Map<String, dynamic>> _highlights = [];
+
   BibleVerse? _lastReadVerse;
   BibleVerse? _verseOfTheDay;
-  
-  BibleProvider() {
-    _initialize();
-  }
-  
+
   Future<void> _initialize() async {
     await loadBooks();
     if (_books.isNotEmpty) {
-      await loadChapter(1, 1);
-      if (_currentChapter.isNotEmpty) {
-        _verseOfTheDay = _currentChapter.first;
+      final dailyChapter =
+          await _bibleService.getChapter(_currentVersion, 43, 3);
+      if (dailyChapter.isNotEmpty) {
+        final day =
+            DateTime.now().toUtc().difference(DateTime.utc(2024)).inDays;
+        _verseOfTheDay = dailyChapter[day % dailyChapter.length];
       }
-      if (_currentChapter.isNotEmpty) {
-        _lastReadVerse = _currentChapter.first;
-      }
+
+      final prefs = await SharedPreferences.getInstance();
+      final bookId = prefs.getInt('last_read_book') ?? 1;
+      final chapter = prefs.getInt('last_read_chapter') ?? 1;
+      final verse = prefs.getInt('last_read_verse') ?? 1;
+      await loadChapter(bookId, chapter);
+      final verseIndex =
+          _currentChapter.indexWhere((item) => item.verse == verse);
+      _lastReadVerse = verseIndex == -1
+          ? (_currentChapter.isEmpty ? null : _currentChapter.first)
+          : _currentChapter[verseIndex];
     }
   }
-  
+
   Future<void> loadBooks() async {
     _isLoading = true;
     notifyListeners();
-    
+
     try {
       _books = await _bibleService.getBooks(_currentVersion);
     } catch (e) {
       debugPrint('Error loading books: $e');
     }
-    
+
     _isLoading = false;
     notifyListeners();
   }
-  
+
   Future<void> loadChapter(int bookId, int chapter) async {
     _isLoading = true;
     notifyListeners();
-    
+
     try {
       _currentChapter = await _bibleService.getChapter(
         _currentVersion,
@@ -87,27 +96,30 @@ class BibleProvider with ChangeNotifier {
       );
       _selectedChapter = chapter;
       _selectedBook = _books.firstWhere((book) => book.id == bookId);
+      if (_currentChapter.isNotEmpty) {
+        _lastReadVerse = _currentChapter.first;
+        await _saveLastRead(_lastReadVerse!);
+      }
     } catch (e) {
       debugPrint('Error loading chapter: $e');
     }
-    
+
     _isLoading = false;
     notifyListeners();
   }
-  
-  Future<void> changeVersion(String version, String language) async {
+
+  Future<void> changeVersion(String version) async {
     _currentVersion = version;
-    _currentLanguage = language;
     await loadBooks();
-    
+
     if (_selectedBook != null) {
       await loadChapter(_selectedBook!.id, _selectedChapter);
     }
   }
-  
+
   Future<void> nextChapter() async {
     if (_selectedBook == null) return;
-    
+
     if (_selectedChapter < _selectedBook!.chapters) {
       await loadChapter(_selectedBook!.id, _selectedChapter + 1);
     } else {
@@ -119,35 +131,38 @@ class BibleProvider with ChangeNotifier {
   }
 
   Future<void> searchVerses(String query) async {
-    if (query.isEmpty) return;
+    final normalizedQuery = query.trim();
+    if (normalizedQuery.isEmpty) {
+      clearSearch();
+      return;
+    }
+    final request = ++_searchRequest;
     _isSearching = true;
     _searchResults = [];
     notifyListeners();
 
-    final lowerQuery = query.toLowerCase();
-
-    if (_books.isEmpty) await loadBooks();
-
     try {
-      for (final book in _books) {
-        for (int chap = 1; chap <= book.chapters; chap++) {
-          final verses = await _bibleService.getChapter(_currentVersion, book.id, chap);
-          for (final v in verses) {
-            if (v.text.toLowerCase().contains(lowerQuery)) {
-              _searchResults.add(v);
-            }
-          }
-        }
+      final results = await _searchService.search(
+        _currentVersion,
+        normalizedQuery,
+        limit: 200,
+      );
+      if (request == _searchRequest) {
+        _searchResults = results;
       }
     } catch (e) {
       debugPrint('Error during search: $e');
     }
 
-    _isSearching = false;
-    notifyListeners();
+    if (request == _searchRequest) {
+      _isSearching = false;
+      notifyListeners();
+    }
   }
 
   void clearSearch() {
+    _searchRequest++;
+    _isSearching = false;
     _searchResults = [];
     notifyListeners();
   }
@@ -159,6 +174,21 @@ class BibleProvider with ChangeNotifier {
     notifyListeners();
 
     await loadChapter(bookId, chapter);
+    final index = _currentChapter.indexWhere((item) => item.verse == verse);
+    if (index != -1) {
+      _lastReadVerse = _currentChapter[index];
+      await _saveLastRead(_lastReadVerse!);
+    }
+  }
+
+  Future<void> _saveLastRead(BibleVerse verse) async {
+    final prefs = await SharedPreferences.getInstance();
+    await Future.wait([
+      prefs.setInt('last_read_book', verse.book),
+      prefs.setInt('last_read_chapter', verse.chapter),
+      prefs.setInt('last_read_verse', verse.verse),
+      prefs.setString('last_read_version', _currentVersion),
+    ]);
   }
 
   void clearPendingScroll() {
@@ -167,10 +197,10 @@ class BibleProvider with ChangeNotifier {
     _pendingScrollChapter = null;
     notifyListeners();
   }
-  
+
   Future<void> previousChapter() async {
     if (_selectedBook == null) return;
-    
+
     if (_selectedChapter > 1) {
       await loadChapter(_selectedBook!.id, _selectedChapter - 1);
     } else {
@@ -181,10 +211,10 @@ class BibleProvider with ChangeNotifier {
       }
     }
   }
-  
+
   String getVerseReference(BibleVerse verse) {
-    if (_selectedBook == null) return '';
-    return '${_selectedBook!.name} ${verse.chapter}:${verse.verse}';
+    final index = _books.indexWhere((book) => book.id == verse.book);
+    if (index == -1) return '${verse.book} ${verse.chapter}:${verse.verse}';
+    return '${_books[index].name} ${verse.chapter}:${verse.verse}';
   }
 }
-

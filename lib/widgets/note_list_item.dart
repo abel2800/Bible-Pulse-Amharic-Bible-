@@ -6,7 +6,7 @@ import '../providers/study_provider.dart';
 
 class NoteListItem extends StatelessWidget {
   final Note note;
-  
+
   const NoteListItem({
     super.key,
     required this.note,
@@ -16,7 +16,7 @@ class NoteListItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final studyProvider = Provider.of<StudyProvider>(context, listen: false);
     final dateFormat = DateFormat('MMM d, yyyy');
-    
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
@@ -69,13 +69,13 @@ class NoteListItem extends StatelessWidget {
       ),
     );
   }
-  
+
   Future<void> _showEditDialog(
     BuildContext context,
     StudyProvider provider,
   ) async {
     final controller = TextEditingController(text: note.text);
-    
+
     await showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -108,10 +108,10 @@ class NoteListItem extends StatelessWidget {
         ],
       ),
     );
-    
+
     controller.dispose();
   }
-  
+
   Future<void> _deleteNote(
     BuildContext context,
     StudyProvider provider,
@@ -133,10 +133,9 @@ class NoteListItem extends StatelessWidget {
         ],
       ),
     );
-    
+
     if (confirm == true) {
       await provider.deleteNote(note.id);
     }
   }
 }
-

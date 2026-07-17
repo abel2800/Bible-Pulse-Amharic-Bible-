@@ -1,14 +1,15 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 import '../models/font_settings.dart';
-import '../services/database_service.dart';
 
 class FontSettingsProvider with ChangeNotifier {
-  final DatabaseService _db = DatabaseService();
-  
   FontSettings _fontSettings = const FontSettings(
-    fontSize: 16.0,
-    fontFamily: 'Roboto',
-    lineHeight: 1.5,
+    fontSize: 18.0,
+    fontFamily: 'Merriweather',
+    lineHeight: 1.6,
   );
 
   FontSettings get fontSettings => _fontSettings;
@@ -18,6 +19,13 @@ class FontSettingsProvider with ChangeNotifier {
 
   Future<void> loadFontSettings() async {
     try {
+      final prefs = await SharedPreferences.getInstance();
+      final encoded = prefs.getString('reader_font_settings');
+      if (encoded != null) {
+        _fontSettings = FontSettings.fromJson(
+          jsonDecode(encoded) as Map<String, dynamic>,
+        );
+      }
       notifyListeners();
     } catch (e) {
       debugPrint('Error loading font settings: $e');
@@ -44,9 +52,9 @@ class FontSettingsProvider with ChangeNotifier {
 
   Future<void> resetToDefaults() async {
     _fontSettings = const FontSettings(
-      fontSize: 16.0,
-      fontFamily: 'Roboto',
-      lineHeight: 1.5,
+      fontSize: 18.0,
+      fontFamily: 'Merriweather',
+      lineHeight: 1.6,
     );
     notifyListeners();
     await _saveFontSettings();
@@ -54,10 +62,13 @@ class FontSettingsProvider with ChangeNotifier {
 
   Future<void> _saveFontSettings() async {
     try {
-      debugPrint('Font settings saved');
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+        'reader_font_settings',
+        jsonEncode(_fontSettings.toJson()),
+      );
     } catch (e) {
       debugPrint('Error saving font settings: $e');
     }
   }
 }
-

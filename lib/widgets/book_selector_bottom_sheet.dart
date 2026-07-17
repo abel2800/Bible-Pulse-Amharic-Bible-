@@ -14,9 +14,11 @@ class BookSelectorBottomSheet extends StatelessWidget {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final l10n = AppLocalizations.of(context);
     final isDark = themeProvider.isDarkMode;
-    final otBooks = bibleProvider.books.where((b) => b.testament == 'OT').toList();
-    final ntBooks = bibleProvider.books.where((b) => b.testament == 'NT').toList();
-    
+    final otBooks =
+        bibleProvider.books.where((b) => b.testament == 'OT').toList();
+    final ntBooks =
+        bibleProvider.books.where((b) => b.testament == 'NT').toList();
+
     return Container(
       height: MediaQuery.of(context).size.height * 0.75,
       decoration: BoxDecoration(
@@ -36,9 +38,7 @@ class BookSelectorBottomSheet extends StatelessWidget {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
         boxShadow: [
           BoxShadow(
-            color: isDark
-                ? const Color(0x66D4AF37)
-                : const Color(0x22D4AF37),
+            color: isDark ? const Color(0x66D4AF37) : const Color(0x22D4AF37),
             blurRadius: 20,
             offset: const Offset(0, -5),
           ),
@@ -55,7 +55,6 @@ class BookSelectorBottomSheet extends StatelessWidget {
               borderRadius: BorderRadius.circular(2),
             ),
           ),
-          
           Container(
             padding: const EdgeInsets.fromLTRB(24, 8, 16, 16),
             decoration: BoxDecoration(
@@ -94,7 +93,9 @@ class BookSelectorBottomSheet extends StatelessWidget {
                     style: GoogleFonts.crimsonText(
                       fontSize: 24,
                       fontWeight: FontWeight.w700,
-                      color: isDark ? const Color(0xFFD4AF37) : const Color(0xFFB8960F),
+                      color: isDark
+                          ? const Color(0xFFD4AF37)
+                          : const Color(0xFFB8960F),
                       letterSpacing: 0.5,
                     ),
                   ),
@@ -102,21 +103,23 @@ class BookSelectorBottomSheet extends StatelessWidget {
                 IconButton(
                   icon: Icon(
                     Icons.close_rounded,
-                    color: isDark ? const Color(0xFFD4AF37) : const Color(0xFFB8960F),
+                    color: isDark
+                        ? const Color(0xFFD4AF37)
+                        : const Color(0xFFB8960F),
                   ),
                   onPressed: () => Navigator.pop(context),
                 ),
               ],
             ),
           ),
-          
           Expanded(
             child: DefaultTabController(
               length: 2,
               child: Column(
                 children: [
                   Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    margin:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
                       color: isDark
                           ? const Color(0x22D4AF37)
@@ -127,8 +130,14 @@ class BookSelectorBottomSheet extends StatelessWidget {
                       indicator: BoxDecoration(
                         gradient: LinearGradient(
                           colors: isDark
-                              ? [const Color(0xFFD4AF37), const Color(0xFFB8960F)]
-                              : [const Color(0xFFB8960F), const Color(0xFFD4AF37)],
+                              ? [
+                                  const Color(0xFFD4AF37),
+                                  const Color(0xFFB8960F)
+                                ]
+                              : [
+                                  const Color(0xFFB8960F),
+                                  const Color(0xFFD4AF37)
+                                ],
                         ),
                         borderRadius: BorderRadius.circular(16),
                       ),
@@ -163,7 +172,7 @@ class BookSelectorBottomSheet extends StatelessWidget {
       ),
     );
   }
-  
+
   Widget _buildBookList(
     BuildContext context,
     List books,
@@ -176,7 +185,7 @@ class BookSelectorBottomSheet extends StatelessWidget {
       itemBuilder: (context, index) {
         final book = books[index];
         final isSelected = provider.selectedBook?.id == book.id;
-        
+
         return Container(
           margin: const EdgeInsets.only(bottom: 8),
           decoration: BoxDecoration(
@@ -191,7 +200,9 @@ class BookSelectorBottomSheet extends StatelessWidget {
             border: Border.all(
               color: isSelected
                   ? (isDark ? const Color(0x88D4AF37) : const Color(0x66D4AF37))
-                  : (isDark ? const Color(0x11D4AF37) : const Color(0x08D4AF37)),
+                  : (isDark
+                      ? const Color(0x11D4AF37)
+                      : const Color(0x08D4AF37)),
               width: 1.5,
             ),
           ),
@@ -204,12 +215,17 @@ class BookSelectorBottomSheet extends StatelessWidget {
                     ? LinearGradient(
                         colors: isDark
                             ? [const Color(0xFFD4AF37), const Color(0xFFB8960F)]
-                            : [const Color(0xFFB8960F), const Color(0xFFD4AF37)],
+                            : [
+                                const Color(0xFFB8960F),
+                                const Color(0xFFD4AF37)
+                              ],
                       )
                     : null,
                 color: isSelected
                     ? null
-                    : (isDark ? const Color(0x22D4AF37) : const Color(0x11D4AF37)),
+                    : (isDark
+                        ? const Color(0x22D4AF37)
+                        : const Color(0x11D4AF37)),
                 shape: BoxShape.circle,
               ),
               child: Center(
@@ -218,7 +234,9 @@ class BookSelectorBottomSheet extends StatelessWidget {
                   style: GoogleFonts.crimsonText(
                     color: isSelected
                         ? Colors.white
-                        : (isDark ? const Color(0xFFD4AF37) : const Color(0xFFB8960F)),
+                        : (isDark
+                            ? const Color(0xFFD4AF37)
+                            : const Color(0xFFB8960F)),
                     fontWeight: FontWeight.bold,
                     fontSize: 20,
                   ),
@@ -231,8 +249,12 @@ class BookSelectorBottomSheet extends StatelessWidget {
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                 fontSize: 17,
                 color: isDark
-                    ? (isSelected ? const Color(0xFFD4AF37) : const Color(0xFFFAF8F3))
-                    : (isSelected ? const Color(0xFFB8960F) : const Color(0xFF2D2516)),
+                    ? (isSelected
+                        ? const Color(0xFFD4AF37)
+                        : const Color(0xFFFAF8F3))
+                    : (isSelected
+                        ? const Color(0xFFB8960F)
+                        : const Color(0xFF2D2516)),
                 letterSpacing: 0.3,
               ),
             ),
@@ -240,7 +262,8 @@ class BookSelectorBottomSheet extends StatelessWidget {
               '${book.chapters} ${AppLocalizations.of(context).chapters}',
               style: GoogleFonts.crimsonText(
                 fontSize: 14,
-                color: isDark ? const Color(0xFFC4B5A0) : const Color(0xFF6B5D4F),
+                color:
+                    isDark ? const Color(0xFFC4B5A0) : const Color(0xFF6B5D4F),
               ),
             ),
             trailing: isSelected
@@ -250,7 +273,10 @@ class BookSelectorBottomSheet extends StatelessWidget {
                       gradient: LinearGradient(
                         colors: isDark
                             ? [const Color(0xFFD4AF37), const Color(0xFFB8960F)]
-                            : [const Color(0xFFB8960F), const Color(0xFFD4AF37)],
+                            : [
+                                const Color(0xFFB8960F),
+                                const Color(0xFFD4AF37)
+                              ],
                       ),
                       shape: BoxShape.circle,
                     ),
@@ -263,7 +289,9 @@ class BookSelectorBottomSheet extends StatelessWidget {
                 : Icon(
                     Icons.arrow_forward_ios_rounded,
                     size: 16,
-                    color: isDark ? const Color(0x44D4AF37) : const Color(0x44B8960F),
+                    color: isDark
+                        ? const Color(0x44D4AF37)
+                        : const Color(0x44B8960F),
                   ),
             onTap: () async {
               await provider.loadChapter(book.id, 1);

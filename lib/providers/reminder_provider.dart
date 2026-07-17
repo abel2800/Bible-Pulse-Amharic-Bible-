@@ -1,134 +1,70 @@
-import 'package:flutter/material.dart';
-import '../models/reminder.dart';
-import '../services/notification_service.dart';
-import 'package:uuid/uuid.dart';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
+
+import '../services/bible_service.dart';
+import '../services/notification_service.dart';
 
 class ReminderProvider extends ChangeNotifier {
-  final NotificationService _notificationService = NotificationService();
-  final Uuid _uuid = const Uuid();
-  
-  List<DevotionReminder> _reminders = [];
-  
-  List<DevotionReminder> get reminders => _reminders;
-  List<DevotionReminder> get activeReminders =>
-      _reminders.where((r) => r.isEnabled).toList();
-  
-  Future<void> loadReminders() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final remindersJson = prefs.getString('devotion_reminders');
-      
-      if (remindersJson != null) {
-        final List<dynamic> decoded = json.decode(remindersJson);
-        _reminders = decoded.map((r) => DevotionReminder.fromJson(r)).toList();
-        notifyListeners();
-      }
-    } catch (e) {
-      debugPrint('Error loading reminders: $e');
-    }
+  ReminderProvider({
+    NotificationService? notificationService,
+    BibleService? bibleService,
+  })  : _notificationService = notificationService ?? NotificationService(),
+        _bibleService = bibleService ?? BibleService();
+
+  final NotificationService _notificationService;
+  final BibleService _bibleService;
+
+  static const themes = ['peace', 'strength', 'gratitude'];
+  String _theme = 'peace';
+
+  String get theme => _theme;
+
+  Future<void> initialize() async {
+    final preferences = await SharedPreferences.getInstance();
+    _theme = preferences.getString('notification_theme') ?? 'peace';
+    notifyListeners();
   }
-  
-  Future<void> addReminder(DevotionReminder reminder) async {
-    try {
-      _reminders.add(reminder);
-      await _saveReminders();
-      
-      if (reminder.isEnabled) {
-        await _scheduleReminder(reminder);
-      }
-      
-      notifyListeners();
-    } catch (e) {
-      debugPrint('Error adding reminder: $e');
-    }
-  }
-  
-  Future<void> updateReminder(DevotionReminder reminder) async {
-    try {
-      final index = _reminders.indexWhere((r) => r.id == reminder.id);
-      if (index == -1) return;
-      
-      _reminders[index] = reminder;
-      await _saveReminders();
-      
-      await _notificationService.cancelNotification(index);
-      
-      if (reminder.isEnabled) {
-        await _scheduleReminder(reminder);
-      }
-      
-      notifyListeners();
-    } catch (e) {
-      debugPrint('Error updating reminder: $e');
-    }
-  }
-  
-  Future<void> deleteReminder(String id) async {
-    try {
-      final index = _reminders.indexWhere((r) => r.id == id);
-      if (index == -1) return;
-      
-      await _notificationService.cancelNotification(index);
-      
-      _reminders.removeAt(index);
-      await _saveReminders();
-      
-      notifyListeners();
-    } catch (e) {
-      debugPrint('Error deleting reminder: $e');
-    }
-  }
-  
-  Future<void> toggleReminder(String id) async {
-    try {
-      final index = _reminders.indexWhere((r) => r.id == id);
-      if (index == -1) return;
-      
-      final reminder = _reminders[index];
-      final updated = reminder.copyWith(isEnabled: !reminder.isEnabled);
-      
-      _reminders[index] = updated;
-      await _saveReminders();
-      
-      if (updated.isEnabled) {
-        await _scheduleReminder(updated);
-      } else {
-        await _notificationService.cancelNotification(index);
-      }
-      
-      notifyListeners();
-    } catch (e) {
-      debugPrint('Error toggling reminder: $e');
-    }
-  }
-  
-  Future<void> _saveReminders() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final remindersJson = json.encode(
-        _reminders.map((r) => r.toJson()).toList(),
-      );
-      await prefs.setString('devotion_reminders', remindersJson);
-    } catch (e) {
-      debugPrint('Error saving reminders: $e');
-    }
-  }
-  
-  Future<void> _scheduleReminder(DevotionReminder reminder) async {
-    debugPrint('Scheduling reminder: ${reminder.title} at ${reminder.formattedTime}');
-  }
-  
-  DevotionReminder createDefaultReminder() {
-    return DevotionReminder(
-      id: _uuid.v4(),
-      title: 'Daily Devotion',
-      description: 'Time for your daily devotion',
-      time: const TimeOfDay(hour: 8, minute: 0),
-      daysOfWeek: [1, 2, 3, 4, 5, 6, 7], // Every day
-      createdAt: DateTime.now(),
+
+  Future<bool> enableThemeNotification({
+    required String theme,
+    required int hour,
+    required int minute,
+  }) async {
+    final selection =
+        <String, ({int book, int chapter, int verse, String reference})>{
+      'peace': (book: 19, chapter: 4, verse: 8, reference: 'Psalm 4:8'),
+      'strength': (book: 23, chapter: 41, verse: 10, reference: 'Isaiah 41:10'),
+      'gratitude': (
+        book: 52,
+        chapter: 5,
+        verse: 18,
+        reference: '1 Thessalonians 5:18',
+      ),
+    }[theme];
+    if (selection == null) return false;
+
+    final granted = await _notificationService.requestPermissions();
+    if (!granted) return false;
+
+    final chapter = await _bibleService.getChapter(
+      'WEB',
+      selection.book,
+      selection.chapter,
     );
+    final index = chapter.indexWhere((item) => item.verse == selection.verse);
+    if (index == -1) return false;
+
+    await _notificationService.scheduleDailyDevotional(
+      title:
+          '${theme[0].toUpperCase()}${theme.substring(1)} · ${selection.reference}',
+      body: chapter[index].text,
+      hour: hour,
+      minute: minute,
+    );
+    _theme = theme;
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setString('notification_theme', theme);
+    notifyListeners();
+    return true;
   }
 }
-

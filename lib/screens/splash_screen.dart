@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../utils/app_theme.dart';
-import 'dart:async';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -10,7 +9,8 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
+class _SplashScreenState extends State<SplashScreen>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
@@ -19,40 +19,34 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   @override
   void initState() {
     super.initState();
-    
+
     _controller = AnimationController(
       duration: const Duration(milliseconds: 2000),
       vsync: this,
     );
-    
+
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _controller,
         curve: const Interval(0.0, 0.6, curve: Curves.easeIn),
       ),
     );
-    
+
     _scaleAnimation = Tween<double>(begin: 0.5, end: 1.0).animate(
       CurvedAnimation(
         parent: _controller,
         curve: const Interval(0.0, 0.7, curve: Curves.easeOutBack),
       ),
     );
-    
+
     _glowAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _controller,
         curve: Curves.easeInOut,
       ),
     );
-    
+
     _controller.forward();
-    
-    Timer(const Duration(seconds: 3), () {
-      if (mounted) {
-        Navigator.of(context).pushReplacementNamed('/home');
-      }
-    });
   }
 
   @override
@@ -64,7 +58,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -83,9 +77,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                     AppTheme.accentTeal,
                     AppTheme.parchment,
                   ],
-            stops: isDark
-                ? [0.0, 0.5, 1.0]
-                : [0.0, 0.15, 0.35, 0.5, 0.65, 0.85, 1.0],
+            stops: isDark ? [0.0, 0.5, 1.0] : [0.0, 0.3, 0.65, 1.0],
           ),
         ),
         child: Stack(
@@ -104,7 +96,6 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                   },
                 ),
               ),
-            
             Center(
               child: FadeTransition(
                 opacity: _fadeAnimation,
@@ -139,13 +130,15 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                                   color: (isDark
                                           ? const Color(0xFFD4AF37)
                                           : const Color(0xFFFFD700))
-                                      .withOpacity(0.5 * _glowAnimation.value),
+                                      .withValues(
+                                    alpha: 0.5 * _glowAnimation.value,
+                                  ),
                                   blurRadius: 40 + (30 * _glowAnimation.value),
                                   spreadRadius: 10 * _glowAnimation.value,
                                 ),
                               ],
                             ),
-                                child: const Icon(
+                            child: const Icon(
                               Icons.auto_stories_rounded,
                               size: 90,
                               color: Colors.white,
@@ -154,12 +147,19 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                         },
                       ),
                       const SizedBox(height: 40),
-                      
                       ShaderMask(
                         shaderCallback: (bounds) => LinearGradient(
                           colors: isDark
-                              ? [AppTheme.accentTeal, AppTheme.primaryIndigo, AppTheme.parchment]
-                              : [AppTheme.accentTeal, AppTheme.primaryIndigo, AppTheme.parchment],
+                              ? [
+                                  AppTheme.accentTeal,
+                                  AppTheme.primaryIndigo,
+                                  AppTheme.parchment
+                                ]
+                              : [
+                                  AppTheme.accentTeal,
+                                  AppTheme.primaryIndigo,
+                                  AppTheme.parchment
+                                ],
                         ).createShader(bounds),
                         child: Text(
                           'BiblePulse',
@@ -172,25 +172,27 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                         ),
                       ),
                       const SizedBox(height: 12),
-                      
                       Text(
                         'Your Daily Faith Companion',
                         style: GoogleFonts.crimsonText(
                           fontSize: 18,
-                          color: isDark ? AppTheme.parchment : AppTheme.primaryIndigo,
+                          color: isDark
+                              ? AppTheme.parchment
+                              : AppTheme.primaryIndigo,
                           letterSpacing: 1.5,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
                       const SizedBox(height: 60),
-                      
                       SizedBox(
                         width: 40,
                         height: 40,
                         child: CircularProgressIndicator(
                           strokeWidth: 3,
                           valueColor: AlwaysStoppedAnimation<Color>(
-                            isDark ? AppTheme.accentTeal : AppTheme.primaryIndigo,
+                            isDark
+                                ? AppTheme.accentTeal
+                                : AppTheme.primaryIndigo,
                           ),
                         ),
                       ),

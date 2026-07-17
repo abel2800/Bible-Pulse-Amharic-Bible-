@@ -14,15 +14,16 @@ class StudyScreen extends StatefulWidget {
   State<StudyScreen> createState() => _StudyScreenState();
 }
 
-class _StudyScreenState extends State<StudyScreen> with SingleTickerProviderStateMixin {
+class _StudyScreenState extends State<StudyScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
   }
-  
+
   @override
   void dispose() {
     _tabController.dispose();
@@ -34,7 +35,7 @@ class _StudyScreenState extends State<StudyScreen> with SingleTickerProviderStat
     final studyProvider = Provider.of<StudyProvider>(context);
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDark = themeProvider.isDarkMode;
-    
+
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -56,7 +57,8 @@ class _StudyScreenState extends State<StudyScreen> with SingleTickerProviderStat
           child: Column(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: isDark
@@ -73,7 +75,9 @@ class _StudyScreenState extends State<StudyScreen> with SingleTickerProviderStat
                     IconButton(
                       icon: Icon(
                         Icons.arrow_back_ios_rounded,
-                        color: isDark ? const Color(0xFFD4AF37) : const Color(0xFFB8960F),
+                        color: isDark
+                            ? const Color(0xFFD4AF37)
+                            : const Color(0xFFB8960F),
                       ),
                       onPressed: () => Navigator.pop(context),
                     ),
@@ -83,12 +87,19 @@ class _StudyScreenState extends State<StudyScreen> with SingleTickerProviderStat
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: isDark
-                              ? [const Color(0xFFD4AF37), const Color(0xFFB8960F)]
-                              : [const Color(0xFFB8960F), const Color(0xFFD4AF37)],
+                              ? [
+                                  const Color(0xFFD4AF37),
+                                  const Color(0xFFB8960F)
+                                ]
+                              : [
+                                  const Color(0xFFB8960F),
+                                  const Color(0xFFD4AF37)
+                                ],
                         ),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(Icons.book_rounded, color: Colors.white, size: 24),
+                      child: const Icon(Icons.book_rounded,
+                          color: Colors.white, size: 24),
                     ),
                     const SizedBox(width: 16),
                     Text(
@@ -96,16 +107,18 @@ class _StudyScreenState extends State<StudyScreen> with SingleTickerProviderStat
                       style: GoogleFonts.crimsonText(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
-                        color: isDark ? const Color(0xFFD4AF37) : const Color(0xFFB8960F),
+                        color: isDark
+                            ? const Color(0xFFD4AF37)
+                            : const Color(0xFFB8960F),
                         letterSpacing: 0.5,
                       ),
                     ),
                   ],
                 ),
               ),
-              
               Container(
-                margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                margin:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                 decoration: BoxDecoration(
                   color: isDark
                       ? const Color(0x22D4AF37)
@@ -148,7 +161,6 @@ class _StudyScreenState extends State<StudyScreen> with SingleTickerProviderStat
                   ],
                 ),
               ),
-              
               Expanded(
                 child: TabBarView(
                   controller: _tabController,
@@ -157,7 +169,8 @@ class _StudyScreenState extends State<StudyScreen> with SingleTickerProviderStat
                         ? _buildEmptyState(
                             icon: Icons.highlight_rounded,
                             message: 'No highlights yet',
-                            description: 'Long press any verse to add a highlight',
+                            description:
+                                'Long press any verse to add a highlight',
                             isDark: isDark,
                           )
                         : ListView.builder(
@@ -169,12 +182,12 @@ class _StudyScreenState extends State<StudyScreen> with SingleTickerProviderStat
                               );
                             },
                           ),
-                    
                     studyProvider.notes.isEmpty
                         ? _buildEmptyState(
                             icon: Icons.note_rounded,
                             message: 'No notes yet',
-                            description: 'Add notes to verses for personal study',
+                            description:
+                                'Add notes to verses for personal study',
                             isDark: isDark,
                           )
                         : ListView.builder(
@@ -186,12 +199,12 @@ class _StudyScreenState extends State<StudyScreen> with SingleTickerProviderStat
                               );
                             },
                           ),
-                    
                     studyProvider.bookmarks.isEmpty
                         ? _buildEmptyState(
                             icon: Icons.bookmark_rounded,
                             message: 'No bookmarks yet',
-                            description: 'Bookmark verses to easily find them later',
+                            description:
+                                'Bookmark verses to easily find them later',
                             isDark: isDark,
                           )
                         : ListView.builder(
@@ -212,7 +225,7 @@ class _StudyScreenState extends State<StudyScreen> with SingleTickerProviderStat
       ),
     );
   }
-  
+
   Widget _buildEmptyState({
     required IconData icon,
     required String message,
@@ -235,16 +248,17 @@ class _StudyScreenState extends State<StudyScreen> with SingleTickerProviderStat
                       : [const Color(0x11D4AF37), const Color(0x08D4AF37)],
                 ),
                 border: Border.all(
-                  color: isDark ? const Color(0x44D4AF37) : const Color(0x33D4AF37),
+                  color: isDark
+                      ? const Color(0x44D4AF37)
+                      : const Color(0x33D4AF37),
                   width: 2,
                 ),
               ),
               child: Icon(
                 icon,
                 size: 72,
-                color: isDark
-                    ? const Color(0x88D4AF37)
-                    : const Color(0x88B8960F),
+                color:
+                    isDark ? const Color(0x88D4AF37) : const Color(0x88B8960F),
               ),
             ),
             const SizedBox(height: 28),
@@ -253,7 +267,8 @@ class _StudyScreenState extends State<StudyScreen> with SingleTickerProviderStat
               style: GoogleFonts.crimsonText(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
-                color: isDark ? const Color(0xFFD4AF37) : const Color(0xFFB8960F),
+                color:
+                    isDark ? const Color(0xFFD4AF37) : const Color(0xFFB8960F),
                 letterSpacing: 0.5,
               ),
             ),
@@ -264,7 +279,8 @@ class _StudyScreenState extends State<StudyScreen> with SingleTickerProviderStat
               style: GoogleFonts.crimsonText(
                 fontSize: 16,
                 height: 1.5,
-                color: isDark ? const Color(0xFFC4B5A0) : const Color(0xFF6B5D4F),
+                color:
+                    isDark ? const Color(0xFFC4B5A0) : const Color(0xFF6B5D4F),
                 letterSpacing: 0.3,
               ),
             ),

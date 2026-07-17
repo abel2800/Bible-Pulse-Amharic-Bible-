@@ -49,30 +49,34 @@ class _SearchScreenState extends State<SearchScreen> {
               ),
               const SizedBox(height: 12),
               if (bibleProvider.isSearching)
-                const Expanded(child: Center(child: CircularProgressIndicator()))
+                const Expanded(
+                    child: Center(child: CircularProgressIndicator()))
               else if (bibleProvider.searchResults.isEmpty)
                 const Expanded(child: Center(child: Text('No results')))
               else
                 Expanded(
                   child: ListView.separated(
-                        itemCount: bibleProvider.searchResults.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 8),
-                        itemBuilder: (context, index) {
-                          final verse = bibleProvider.searchResults[index];
-                          final reference = bibleProvider.getVerseReference(verse);
-                          return InkWell(
-                            onTap: () async {
-                              await bibleProvider.goToVerse(verse.book, verse.chapter, verse.verse);
-                              Provider.of<NavigationProvider>(context, listen: false).setIndex(1);
-                              if (mounted) Navigator.pop(context);
-                            },
-                            child: VerseCard(
-                              verse: verse,
-                              reference: reference,
-                              isHighlighted: false,
-                            ),
-                          );
+                    itemCount: bibleProvider.searchResults.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    itemBuilder: (context, index) {
+                      final verse = bibleProvider.searchResults[index];
+                      final reference = bibleProvider.getVerseReference(verse);
+                      return InkWell(
+                        onTap: () async {
+                          final navigation = context.read<NavigationProvider>();
+                          await bibleProvider.goToVerse(
+                              verse.book, verse.chapter, verse.verse);
+                          if (!context.mounted) return;
+                          navigation.setIndex(1);
+                          Navigator.pop(context);
                         },
+                        child: VerseCard(
+                          verse: verse,
+                          reference: reference,
+                          isHighlighted: false,
+                        ),
+                      );
+                    },
                   ),
                 ),
             ],

@@ -5,7 +5,7 @@ import '../providers/study_provider.dart';
 
 class HighlightListItem extends StatelessWidget {
   final Highlight highlight;
-  
+
   const HighlightListItem({
     super.key,
     required this.highlight,
@@ -14,19 +14,18 @@ class HighlightListItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final studyProvider = Provider.of<StudyProvider>(context, listen: false);
-    
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
-        onTap: () {
-        },
+        onTap: () {},
         borderRadius: BorderRadius.circular(16),
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: Color(highlight.color).withOpacity(0.5),
+              color: Color(highlight.color).withValues(alpha: 0.5),
               width: 2,
             ),
           ),
@@ -75,7 +74,7 @@ class HighlightListItem extends StatelessWidget {
                           ],
                         ),
                       );
-                      
+
                       if (confirm == true) {
                         await studyProvider.removeHighlight(
                           highlight.verseReference,
@@ -97,4 +96,3 @@ class HighlightListItem extends StatelessWidget {
     );
   }
 }
-

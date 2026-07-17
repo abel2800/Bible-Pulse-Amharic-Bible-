@@ -3,14 +3,14 @@ class BibleBook {
   final String name;
   final int chapters;
   final String testament;
-  
+
   BibleBook({
     required this.id,
     required this.name,
     required this.chapters,
     required this.testament,
   });
-  
+
   factory BibleBook.fromJson(Map<String, dynamic> json) {
     return BibleBook(
       id: json['id'] as int,
@@ -19,7 +19,7 @@ class BibleBook {
       testament: json['testament'] as String,
     );
   }
-  
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -29,4 +29,3 @@ class BibleBook {
     };
   }
 }
-

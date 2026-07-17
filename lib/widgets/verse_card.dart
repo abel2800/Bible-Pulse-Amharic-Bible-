@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:provider/provider.dart';
 import '../models/bible_verse.dart';
-import '../providers/study_provider.dart';
-import '../utils/app_theme.dart';
 import '../widgets/verse_action_bottom_sheet.dart';
 
 class VerseCard extends StatelessWidget {
@@ -13,7 +10,7 @@ class VerseCard extends StatelessWidget {
   final Color? highlightColor;
   final bool isBookmarked;
   final bool hasNote;
-  
+
   const VerseCard({
     super.key,
     required this.verse,
@@ -40,7 +37,7 @@ class VerseCard extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 2),
         decoration: BoxDecoration(
           color: isHighlighted
-              ? highlightColor?.withOpacity(0.25)
+              ? highlightColor?.withValues(alpha: 0.25)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(4),
         ),
@@ -59,7 +56,10 @@ class VerseCard extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.primary.withOpacity(0.8),
+                  color: Theme.of(context)
+                      .colorScheme
+                      .primary
+                      .withValues(alpha: 0.8),
                   fontFeatures: const [FontFeature.enable('sups')],
                 ),
               ),
@@ -76,7 +76,7 @@ class VerseCard extends StatelessWidget {
       ),
     );
   }
-  
+
   void _showActions(BuildContext context) {
     showModalBottomSheet(
       context: context,

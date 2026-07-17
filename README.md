@@ -1,248 +1,142 @@
-# BiblePulse - A Comprehensive Bible Study App
+# BiblePulse
 
-## What is BiblePulse?
+BiblePulse is an offline-first Flutter Bible reader and study app. The current
+verified release surface is deliberately smaller than the historical
+prototype: it exposes only features backed by real content and working local
+persistence.
 
-BiblePulse is a cross-platform Bible app built with Flutter. It started as a learning project where I wanted to see if I could build a comprehensive Bible study experience for mobile devices. It's definitely not finished, but it has grown into something I'm pretty proud of.
+## Verified features
 
-The idea was to combine traditional Bible reading with modern features like devotionals, reading plans, and study tools. You can read Scripture in multiple versions (KJV, ASV, Amharic), take notes on verses, create bookmarks, follow reading plans, and start your day with devotionals. It's meant to feel natural whether you've been reading the Bible for years or you're just getting started.
+- World English Bible, 66-book Protestant edition, bundled for offline use.
+- Adaptive navigation: mobile bottom bar and wide-screen navigation rail.
+- Scripture navigation by book and chapter.
+- Unicode indexed search with bounded results.
+  - SQLite FTS5 on Android, iOS, and macOS.
+  - In-memory token index on web, Windows, and Linux.
+- Tap or long-press verse actions:
+  - highlight and remove highlight;
+  - create/update notes;
+  - bookmark and remove bookmark;
+  - copy and share;
+  - pass the verse into wallpaper creation;
+  - show verified cross-reference availability.
+- Persistent guest study data.
+  - SQLite on Android, iOS, and macOS.
+  - SharedPreferences fallback on web, Windows, and Linux.
+- Last-read restoration and exact search-to-verse scrolling.
+- Date-rotating verse of the day from verified WEB text.
+- App light/dark/system themes.
+- Independent reader themes: Light, Sepia, Dark, True Black, Blue Night,
+  and Forest.
+- Persistent Scripture font size and line spacing.
+- English and Amharic application locale selection.
+- Single-color highlights that remain until explicit removal and synchronize
+  deletion tombstones when cloud sync is enabled.
+- Reading streaks with one grace day per seven-day window, yearly study
+  memories, and a private local prayer journal.
+- Branded square/feed/status verse-card generation and image sharing.
+- Gated features that activate only when their licensed dependencies exist:
+  parallel Amharic/English reading, audio-synchronized verse following,
+  private reading groups, hymn/Scripture links, and themed reminders.
 
-## The Story Behind This App
+## Intentionally unavailable
 
-I started this as a simple experiment. Could I build a Bible app that was both powerful and easy to use? As I kept working on it, it grew way beyond what I originally planned. I kept adding features from other Bible apps I liked, experimented with different UI patterns, and tried to make the reading experience really pleasant.
+These features are hidden or disabled, not represented as working:
 
-What you see here is an unfinished but functional prototype. It's rough around the edges and there's a lot of work left to do, but it shows what's possible when you combine good design with thoughtful features. Some parts are more polished than others, but that's just how side projects go.
+- Amharic Scripture: the identified eBible source is a copyrighted Amharic New
+  Testament with non-commercial conditions. It is not bundled without broader
+  written permission.
+- Firebase accounts and cloud sync: implementation, owner-scoped rules, and
+  emulator tests exist, but no production project/configuration or published
+  privacy/deletion policy has been supplied.
+- Community: post/report/block/moderation infrastructure is implemented but
+  remains hidden until cloud configuration and moderation operations exist.
+- Bible audio: catalog discovery, live download-permission checks, stream
+  playback, resumable offline downloads, cache controls, and timing support are
+  implemented, but no approved credential, Bible IDs, CDN allowlist, or
+  confirmed language rights have been supplied.
+- Devotional, reading-plan, and hymn catalogs: no rights-documented payloads
+  are bundled.
+- Theme reminder controls are available only on Android/iOS and request
+  permission after a user explicitly chooses a theme.
 
-## What Can You Do With BiblePulse?
+See `docs/CONTENT_SOURCES.md` and `docs/INTEGRATIONS_AND_RELEASE.md`.
 
-### Core Bible Reading
-- **Multiple Versions**: Switch between KJV, ASV, and Amharic translations
-- **Easy Navigation**: Jump between books and chapters without the UI getting in your way
-- **Search**: Find verses or topics across the entire Bible
-- **Customization**: Adjust fonts, text size, line height, and pick from multiple color themes (light, dark, sepia, true black for AMOLED screens)
+## Design system
 
-### Study Tools
-- **Bookmarks**: Save important verses for later
-- **Highlights**: Color-code verses to organize your thoughts
-- **Notes**: Write personal reflections tied to specific verses
-- **Labels**: Tag verses by topic or theme
-- **Cross-References**: See how different parts of Scripture connect
+- Primary indigo: `#0B2545`
+- Accent teal: `#2EC4B6`
+- Limited devotional gold: `#D4AF37` light / `#E8C766` dark
+- Light background: `#F7F3EA`
+- Dark background: `#0A1420`
+- UI typography: Inter
+- Scripture typography: Merriweather
+- Cards: 14 logical-pixel radius
+- Controls: 12 logical-pixel radius
+- Minimum interactive target: 48 by 48 logical pixels
 
-### Daily Devotionals
-- **Daily Readings**: Devotionals from well-known authors
-- **Verse of the Day**: Fresh Scripture every day
-- **Reading Plans**: Structured plans to read through the Bible
-- **Reading History**: Track your progress and see stats
-- **Reminders**: Set up notifications to build daily habits
+## Architecture
 
-### Hymns
-- **Hymn Library**: Traditional Christian hymns with full lyrics
-- **Categories**: Browse by theme (worship, thanksgiving, prayer, Christmas, Easter, etc.)
-- **Favorites**: Save your favorite hymns
-- **Search**: Find hymns by title, number, author, or lyrics
+- `lib/screens`: adaptive shell, dashboard, reader, settings, and enabled flows.
+- `lib/providers`: Provider-based presentation state, including audio
+  downloads, engagement, parallel reading, and private groups.
+- `lib/services`: assets, local database, search, notifications, Firebase sync,
+  Bible Brain audio/cache, community, and licensed-catalog boundaries.
+- `lib/models`: immutable/serializable domain data.
+- `assets/content_manifest.json`: approved-content rights and checksum gate.
+- `assets/bible/web.json`: deterministic canonical WEB asset.
+- `tools/scripture`: USFM downloader/checksum gate and converter.
+- `docs`: content provenance plus integration and release configuration.
 
-### Other Features
-- **Wallpaper Generator**: Turn verses into phone wallpapers
-- **Sharing**: Share verses with friends and family
-- **Multi-language**: English and Amharic interface
+Startup is readiness-driven through `BootstrapScreen`; it has no fixed
+three-second delay. Unavailable integrations do not initialize.
 
-## What Makes This Different?
+The project uses hosted Flutter plugins. Obsolete local plugin copies, example
+apps, build reports, and planning-only scaffolding are intentionally excluded.
 
-Most Bible apps are either super simple text readers or they're packed with so many features you can't find anything. I tried to find a middle ground with powerful tools that don't overwhelm you.
+## Development
 
-The design uses "progressive disclosure" - when you first open the app, you get a clean reading experience. As you explore, you discover more features like notes, highlights, and reading plans. Everything is integrated smoothly without cluttering the interface.
+Requirements:
 
-I also spent a lot of time on aesthetics. Reading the Bible should feel special, so there's nice typography, smooth animations, and colors that are easy on your eyes during long reading sessions.
+- Flutter 3.44.1 or compatible stable release
+- Dart 3.12.1 or compatible SDK
+- Python 3 only when regenerating Scripture
 
-## Tech Stack
+Install and verify:
 
-**Built With:**
-- Flutter (iOS, Android, Web, Windows, Mac, Linux)
-- Provider for state management
-- SQLite for local data storage
-- Shared Preferences for settings
-- Google Fonts for typography
-
-**Project Structure:**
-- `models/` - Data structures
-- `providers/` - State management
-- `screens/` - UI pages
-- `widgets/` - Reusable components
-- `services/` - Business logic
-- `assets/` - Bible files and resources
-
-## Current Status
-
-### ✅ Works Great
-- Bible reading with multiple versions
-- Chapter/book navigation
-- Search functionality
-- Theme switching
-- Font customization
-- Bookmarks, notes, highlights (UI done)
-- Daily devotionals
-- Hymn browsing
-- Basic navigation
-
-### ⚠️ Partially Done
-- Reading plans (UI exists, limited content)
-- Verse sharing (works but basic)
-- Reading statistics
-- Cross-references (structure done, needs content)
-- Notifications (framework there, needs work)
-
-### ❌ Not Implemented Yet
-- Cloud sync
-- User accounts
-- Social features
-- Audio Bible
-- Advanced study tools (commentaries, dictionaries)
-- More Bible version downloads
-- Full reading plans library
-- Complete hymn database with audio
-- Hebrew/Greek tools
-
-## Known Issues
-
-Let's be real about what needs work:
-
-1. **Search is slow** on older devices (it scans the whole Bible)
-2. **Limited content** for devotionals and reading plans
-3. **Some data doesn't persist** between sessions yet
-4. **Error handling** could be better
-5. **Testing** is mostly manual, not automated
-6. **UI inconsistencies** across different screens
-7. **Some duplicate code** that could be refactored
-8. **Web version** works but it's really designed for mobile
-
-## Future Plans
-
-If I keep working on this, here's what I'd love to add:
-
-**Short Term:**
-- More devotionals and reading plans
-- Better search performance
-- Complete database persistence
-- Polish the UI
-- Better error handling
-
-**Medium Term:**
-- Cloud sync for your notes and highlights
-- Social features (study groups, sharing)
-- Audio Bible
-- Better offline support
-- More Bible translations
-- Study tools like commentaries and maps
-- Smarter notifications
-
-**Long Term:**
-- AI-powered verse suggestions
-- Hebrew/Greek study tools
-- Live collaborative Bible study
-- Church integration features
-- Better accessibility
-- Personalized recommendations
-
-## Getting Started
-
-**Prerequisites:**
-- Flutter SDK 3.0.0+
-- Dart SDK
-- Android Studio or Xcode
-- Your favorite code editor
-
-**Installation:**
-
-1. Clone the repo
-```bash
-git clone https://github.com/abel2800/Bible-Pulse-Amharic-Bible-.git
-cd bible
-```
-
-2. Install dependencies
-```bash
+```powershell
 flutter pub get
+dart format --output=none --set-exit-if-changed lib test integration_test
+flutter analyze lib test integration_test
+python tools/content/validate_manifest.py
+flutter test
+flutter build web --release --no-wasm-dry-run
 ```
 
-3. Run the app
-```bash
-flutter run
+Run web:
+
+```powershell
+flutter run -d chrome
 ```
 
-4. Build for release
-```bash
-# Android
-flutter build apk --release
+## Platform verification
 
-# iOS
-flutter build ios --release
+CI verifies web and unsigned Android, iOS, macOS, Linux, and Windows builds.
+Signed store releases require platform certificates and manual release
+validation. The application identifier is `app.biblepulse.reader`; confirm its
+store availability and ownership before publication.
 
-# Web
-flutter build web --release
-```
+## Release security
 
-**Configuration:**
-
-The Bible content is already included in `assets/bible/`:
-- `kjv.json` - King James Version
-- `asv.json` - American Standard Version
-- `amharic.json` - Amharic Bible
-
-No API keys or additional setup needed.
-
-## What I Learned
-
-**What Worked:**
-- Flutter's cross-platform approach is genuinely powerful
-- Provider is simple and works great for this scale
-- Building features incrementally kept things manageable
-- Local-first approach makes it fast and private
-
-**Challenges:**
-- The Bible is a LOT of text. Performance matters.
-- Feature creep is real. Started simple, kept adding stuff.
-- Keeping UI consistent across screens is harder than expected
-- Maintaining momentum on a side project over months is tough
-
-**What I'd Do Different:**
-- Plan the architecture better from day one
-- Write tests earlier
-- Create a design system first
-- Keep the scope smaller and do fewer things really well
-- Have a content strategy from the start
-
-## Contributing
-
-This is mainly a personal learning project, but I'm open to ideas and feedback. Feel free to:
-- Suggest features
-- Report bugs
-- Contribute code
-- Fork it for your own project
-
-The code is here to learn from and build on.
-
-## Bible Content & Copyright
-
-The Bible translations are all public domain:
-- King James Version (1611)
-- American Standard Version (1901)
-- Amharic Bible (public domain)
-
-Devotional content is either public domain or used for educational purposes. If this becomes commercial, proper licensing would be needed.
-
-## Final Thoughts
-
-Building this has taught me a ton about Flutter and mobile development, but also about the challenges of making something meaningful. Every feature took hours of work, and some parts I'm really happy with while others still need work.
-
-If you're checking out this code, I hope you find something useful. Maybe a solution to a problem you're facing, or inspiration for your own project, or just a reminder that all software starts messy and imperfect.
-
-The Bible has been around for thousands of years and has helped billions of people. Building an app to help people read it in modern ways is humbling. This app isn't perfect, but it's made with care for both the craft and the content.
-
-## License
-
-This project is provided as-is for educational and personal use. Bible translations are public domain.
-
----
-
-**Note:** This is an unfinished learning project. It's not production-ready and you'd need significant work before using it commercially. But it's a solid starting point and shows a lot of Flutter concepts in action.
-
-Good luck with your own projects!
+- Android release builds no longer use debug signing.
+- Firestore rules isolate study data per authenticated owner and gate community
+  writes; Firebase remains off unless complete build-time config is supplied.
+- Audio accepts only configured HTTPS media hosts and caches only filesets
+  returned by the credential-scoped `/download/list`.
+- Exact-alarm Android permissions are not requested.
+- CI pins Flutter 3.44.1 and covers app-owned analysis, content rights,
+  unit/widget/accessibility/golden/migration tests, Firebase rules, web
+  integration, and Android/iOS/macOS/Linux/Windows/web builds.
+- CI artifacts are unsigned verification builds. Signing variables and manual
+  release commands are documented in `docs/INTEGRATIONS_AND_RELEASE.md`; no
+  signing secrets are committed.

@@ -5,7 +5,7 @@ import '../providers/study_provider.dart';
 
 class BookmarkListItem extends StatelessWidget {
   final Bookmark bookmark;
-  
+
   const BookmarkListItem({
     super.key,
     required this.bookmark,
@@ -14,12 +14,11 @@ class BookmarkListItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final studyProvider = Provider.of<StudyProvider>(context, listen: false);
-    
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
-        onTap: () {
-        },
+        onTap: () {},
         borderRadius: BorderRadius.circular(16),
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -65,7 +64,7 @@ class BookmarkListItem extends StatelessWidget {
                           ],
                         ),
                       );
-                      
+
                       if (confirm == true) {
                         await studyProvider.removeBookmark(
                           bookmark.verseReference,
@@ -87,4 +86,3 @@ class BookmarkListItem extends StatelessWidget {
     );
   }
 }
-

@@ -4,25 +4,5 @@
 <dict>
 	<key>IDEDidComputeMac32BitWarning</key>
 	<true/>
-	<key>android</key>
-	<dict>
-		<key>namespace</key>
-		<string>THE.PACKAGE.NAME.FROM_MANIFEST</string>
-		<key>compileSdkVersion</key>
-		<integer>33</integer>
-	</dict>
-	<key>dependencies</key>
-	<dict>
-		<key>flutter</key>
-		<dict>
-			<key>sdk</key>
-			<string>flutter</string>
-		</dict>
-		<key>image_gallery_saver</key>
-		<dict>
-			<key>path</key>
-			<string>packages/image_gallery_saver</string>
-		</dict>
-	</dict>
 </dict>
 </plist>

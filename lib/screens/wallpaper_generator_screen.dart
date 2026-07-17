@@ -3,33 +3,36 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:screenshot/screenshot.dart';
 import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
+
+import '../config/app_capabilities.dart';
 
 class WallpaperGeneratorScreen extends StatefulWidget {
   const WallpaperGeneratorScreen({super.key});
 
   @override
-  State<WallpaperGeneratorScreen> createState() => _WallpaperGeneratorScreenState();
+  State<WallpaperGeneratorScreen> createState() =>
+      _WallpaperGeneratorScreenState();
 }
 
 class _WallpaperGeneratorScreenState extends State<WallpaperGeneratorScreen> {
-  final TextEditingController _textController = TextEditingController(
-    text: 'For God so loved the world, that he gave his only begotten Son',
-  );
-  final TextEditingController _referenceController = TextEditingController(
-    text: 'John 3:16',
-  );
+  final TextEditingController _textController = TextEditingController();
+  final TextEditingController _referenceController = TextEditingController();
   final ScreenshotController _screenshotController = ScreenshotController();
-  
+  bool _initializedFromRoute = false;
+
   int _selectedBackgroundIndex = 0;
   double _fontSize = 24.0;
   Color _textColor = Colors.white;
   TextAlign _textAlign = TextAlign.center;
-  
+  double _aspectRatio = 9 / 16;
+
   final List<LinearGradient> _backgrounds = [
     const LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
-      colors: [Color(0xFF6C63FF), Color(0xFF8B83FF)],
+      colors: [Color(0xFF0B2545), Color(0xFF2EC4B6)],
     ),
     const LinearGradient(
       begin: Alignment.topCenter,
@@ -67,21 +70,39 @@ class _WallpaperGeneratorScreenState extends State<WallpaperGeneratorScreen> {
       colors: [Color(0xFF00416A), Color(0xFFE4E5E6)],
     ),
   ];
-  
-  
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_initializedFromRoute) return;
+    _initializedFromRoute = true;
+    final arguments = ModalRoute.of(context)?.settings.arguments;
+    if (arguments is Map) {
+      _textController.text = arguments['text'] as String? ?? '';
+      _referenceController.text = arguments['reference'] as String? ?? '';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final capabilities = context.watch<AppCapabilities>();
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'Create Wallpaper',
+          'Create Verse Card',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         actions: [
           IconButton(
             icon: const Icon(Icons.download_rounded),
-            onPressed: _saveWallpaper,
-            tooltip: 'Save Wallpaper',
+            onPressed: capabilities.wallpaperExport ? _saveWallpaper : null,
+            tooltip: capabilities.wallpaperExport
+                ? 'Save wallpaper'
+                : 'Wallpaper export is unavailable on this platform',
+          ),
+          IconButton(
+            icon: const Icon(Icons.share_rounded),
+            onPressed: _shareCard,
+            tooltip: 'Share branded verse card',
           ),
         ],
       ),
@@ -92,7 +113,7 @@ class _WallpaperGeneratorScreenState extends State<WallpaperGeneratorScreen> {
             Padding(
               padding: const EdgeInsets.all(16),
               child: AspectRatio(
-                aspectRatio: 9 / 16,
+                aspectRatio: _aspectRatio,
                 child: Screenshot(
                   controller: _screenshotController,
                   child: Container(
@@ -120,8 +141,17 @@ class _WallpaperGeneratorScreenState extends State<WallpaperGeneratorScreen> {
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: _fontSize * 0.6,
-                            color: _textColor.withOpacity(0.9),
+                            color: _textColor.withValues(alpha: 0.9),
                             fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                        const Spacer(),
+                        Text(
+                          'BiblePulse',
+                          style: TextStyle(
+                            color: _textColor.withValues(alpha: 0.8),
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 1.2,
                           ),
                         ),
                       ],
@@ -130,7 +160,6 @@ class _WallpaperGeneratorScreenState extends State<WallpaperGeneratorScreen> {
                 ),
               ),
             ),
-            
             Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -146,7 +175,6 @@ class _WallpaperGeneratorScreenState extends State<WallpaperGeneratorScreen> {
                     onChanged: (_) => setState(() {}),
                   ),
                   const SizedBox(height: 16),
-                  
                   TextField(
                     controller: _referenceController,
                     decoration: const InputDecoration(
@@ -156,7 +184,22 @@ class _WallpaperGeneratorScreenState extends State<WallpaperGeneratorScreen> {
                     onChanged: (_) => setState(() {}),
                   ),
                   const SizedBox(height: 24),
-                  
+                  const Text(
+                    'Format',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 12),
+                  SegmentedButton<double>(
+                    segments: const [
+                      ButtonSegment(value: 1, label: Text('Square')),
+                      ButtonSegment(value: 4 / 5, label: Text('Feed')),
+                      ButtonSegment(value: 9 / 16, label: Text('Status')),
+                    ],
+                    selected: {_aspectRatio},
+                    onSelectionChanged: (value) =>
+                        setState(() => _aspectRatio = value.first),
+                  ),
+                  const SizedBox(height: 24),
                   const Text(
                     'Background',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
@@ -169,7 +212,8 @@ class _WallpaperGeneratorScreenState extends State<WallpaperGeneratorScreen> {
                       itemCount: _backgrounds.length,
                       itemBuilder: (context, index) {
                         return GestureDetector(
-                          onTap: () => setState(() => _selectedBackgroundIndex = index),
+                          onTap: () =>
+                              setState(() => _selectedBackgroundIndex = index),
                           child: Container(
                             width: 60,
                             margin: const EdgeInsets.only(right: 12),
@@ -189,7 +233,6 @@ class _WallpaperGeneratorScreenState extends State<WallpaperGeneratorScreen> {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  
                   const Text(
                     'Font Size',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
@@ -203,7 +246,6 @@ class _WallpaperGeneratorScreenState extends State<WallpaperGeneratorScreen> {
                     onChanged: (value) => setState(() => _fontSize = value),
                   ),
                   const SizedBox(height: 16),
-                  
                   const Text(
                     'Text Color',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
@@ -219,7 +261,6 @@ class _WallpaperGeneratorScreenState extends State<WallpaperGeneratorScreen> {
                     ],
                   ),
                   const SizedBox(height: 24),
-                  
                   const Text(
                     'Text Alignment',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
@@ -227,9 +268,12 @@ class _WallpaperGeneratorScreenState extends State<WallpaperGeneratorScreen> {
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      _buildAlignmentButton(Icons.format_align_left, TextAlign.left),
-                      _buildAlignmentButton(Icons.format_align_center, TextAlign.center),
-                      _buildAlignmentButton(Icons.format_align_right, TextAlign.right),
+                      _buildAlignmentButton(
+                          Icons.format_align_left, TextAlign.left),
+                      _buildAlignmentButton(
+                          Icons.format_align_center, TextAlign.center),
+                      _buildAlignmentButton(
+                          Icons.format_align_right, TextAlign.right),
                     ],
                   ),
                 ],
@@ -240,7 +284,22 @@ class _WallpaperGeneratorScreenState extends State<WallpaperGeneratorScreen> {
       ),
     );
   }
-  
+
+  Future<void> _shareCard() async {
+    final bytes = await _screenshotController.capture(pixelRatio: 3);
+    if (bytes == null) return;
+    await Share.shareXFiles(
+      [
+        XFile.fromData(
+          bytes,
+          mimeType: 'image/png',
+          name: 'biblepulse-verse-card.png',
+        ),
+      ],
+      text: _referenceController.text,
+    );
+  }
+
   Widget _buildColorOption(Color color) {
     return GestureDetector(
       onTap: () => setState(() => _textColor = color),
@@ -261,7 +320,7 @@ class _WallpaperGeneratorScreenState extends State<WallpaperGeneratorScreen> {
       ),
     );
   }
-  
+
   Widget _buildAlignmentButton(IconData icon, TextAlign align) {
     return Expanded(
       child: Padding(
@@ -281,21 +340,22 @@ class _WallpaperGeneratorScreenState extends State<WallpaperGeneratorScreen> {
       ),
     );
   }
-  
+
   Future<void> _saveWallpaper() async {
     try {
       if (kIsWeb) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Wallpaper feature works on mobile devices. On web, take a screenshot instead!'),
+              content: Text(
+                  'Wallpaper feature works on mobile devices. On web, take a screenshot instead!'),
               duration: Duration(seconds: 3),
             ),
           );
         }
         return;
       }
-      
+
       final status = await Permission.storage.request();
       if (!status.isGranted) {
         if (mounted) {
@@ -305,11 +365,11 @@ class _WallpaperGeneratorScreenState extends State<WallpaperGeneratorScreen> {
         }
         return;
       }
-      
+
       final image = await _screenshotController.capture();
       if (image != null) {
         await ImageGallerySaver.saveImage(image);
-        
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -331,7 +391,7 @@ class _WallpaperGeneratorScreenState extends State<WallpaperGeneratorScreen> {
       }
     }
   }
-  
+
   @override
   void dispose() {
     _textController.dispose();
@@ -339,4 +399,3 @@ class _WallpaperGeneratorScreenState extends State<WallpaperGeneratorScreen> {
     super.dispose();
   }
 }
-

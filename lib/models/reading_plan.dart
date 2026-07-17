@@ -15,7 +15,7 @@ class ReadingPlan {
   final String publisherLink;
   final int feature;
   final int sect;
-  
+
   ReadingPlan({
     required this.id,
     required this.name,
@@ -34,7 +34,7 @@ class ReadingPlan {
     this.feature = 0,
     this.sect = 0,
   });
-  
+
   factory ReadingPlan.fromJson(Map<String, dynamic> json) {
     return ReadingPlan(
       id: json['name'] ?? '',
@@ -55,26 +55,6 @@ class ReadingPlan {
       sect: json['sect'] ?? 0,
     );
   }
-  
-  Map<String, dynamic> toJson() {
-    return {
-      'name': name,
-      'title': title,
-      'desc': description,
-      'duration': duration,
-      'imageUrl': imageUrl,
-      'thumbnailUrl': thumbnailUrl,
-      'tag': tags,
-      'language': language,
-      'completedCount': completedCount,
-      'startCount': startCount,
-      'createTime': createTime,
-      'publisherInfo': publisherInfo,
-      'publisherLink': publisherLink,
-      'feature': feature,
-      'sect': sect,
-    };
-  }
 }
 
 class UserReadingPlan {
@@ -85,7 +65,7 @@ class UserReadingPlan {
   final bool isCompleted;
   final DateTime? completedDate;
   final Map<int, bool> daysCompleted;
-  
+
   UserReadingPlan({
     required this.id,
     required this.planId,
@@ -95,7 +75,7 @@ class UserReadingPlan {
     this.completedDate,
     Map<int, bool>? daysCompleted,
   }) : daysCompleted = daysCompleted ?? {};
-  
+
   factory UserReadingPlan.fromJson(Map<String, dynamic> json) {
     return UserReadingPlan(
       id: json['id'],
@@ -103,8 +83,8 @@ class UserReadingPlan {
       startDate: DateTime.parse(json['startDate']),
       currentDay: json['currentDay'] ?? 1,
       isCompleted: json['isCompleted'] == 1,
-      completedDate: json['completedDate'] != null 
-          ? DateTime.parse(json['completedDate']) 
+      completedDate: json['completedDate'] != null
+          ? DateTime.parse(json['completedDate'])
           : null,
       daysCompleted: json['daysCompleted'] != null
           ? Map<int, bool>.from(
@@ -115,7 +95,7 @@ class UserReadingPlan {
           : {},
     );
   }
-  
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -129,47 +109,10 @@ class UserReadingPlan {
       ),
     };
   }
-  
+
   double get progress {
     if (daysCompleted.isEmpty) return 0.0;
     final completed = daysCompleted.values.where((v) => v).length;
     return completed / daysCompleted.length;
   }
 }
-
-class DailyReading {
-  final String planId;
-  final int day;
-  final List<String> readings;
-  final String? title;
-  final String? description;
-  
-  DailyReading({
-    required this.planId,
-    required this.day,
-    required this.readings,
-    this.title,
-    this.description,
-  });
-  
-  factory DailyReading.fromJson(Map<String, dynamic> json) {
-    return DailyReading(
-      planId: json['planId'],
-      day: json['day'],
-      readings: List<String>.from(json['readings'] ?? []),
-      title: json['title'],
-      description: json['description'],
-    );
-  }
-  
-  Map<String, dynamic> toJson() {
-    return {
-      'planId': planId,
-      'day': day,
-      'readings': readings,
-      'title': title,
-      'description': description,
-    };
-  }
-}
-

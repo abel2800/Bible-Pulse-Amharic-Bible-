@@ -1,11 +1,12 @@
-import '../models/bible_version.dart';
+import '../models/cross_reference.dart';
 
 class CrossReferenceService {
-  static final CrossReferenceService _instance = CrossReferenceService._internal();
+  static final CrossReferenceService _instance =
+      CrossReferenceService._internal();
   factory CrossReferenceService() => _instance;
   CrossReferenceService._internal();
-  
-  final Map<String, List<CrossReference>> _crossReferences = {
+
+  static const Map<String, List<CrossReference>> _crossReferences = {
     'Genesis 1:1': [
       CrossReference(
         fromReference: 'Genesis 1:1',
@@ -49,36 +50,8 @@ class CrossReferenceService {
       ),
     ],
   };
-  
+
   List<CrossReference> getCrossReferences(String reference) {
     return _crossReferences[reference] ?? [];
   }
-  
-  bool hasCrossReferences(String reference) {
-    return _crossReferences.containsKey(reference) &&
-           _crossReferences[reference]!.isNotEmpty;
-  }
-  
-  int getCrossReferenceCount(String reference) {
-    return _crossReferences[reference]?.length ?? 0;
-  }
-  
-  List<String> getAllReferencedVerses(String reference) {
-    final refs = getCrossReferences(reference);
-    return refs.map((r) => r.toReference).toList();
-  }
-  
-  Future<List<CrossReference>> searchCrossReferences(String query) async {
-    final lowerQuery = query.toLowerCase();
-    final results = <CrossReference>[];
-    
-    for (var entry in _crossReferences.entries) {
-      if (entry.key.toLowerCase().contains(lowerQuery)) {
-        results.addAll(entry.value);
-      }
-    }
-    
-    return results;
-  }
 }
-
