@@ -7,6 +7,10 @@ on:
 env:
   FLUTTER_VERSION: 3.44.1
 
+concurrency:
+  group: biblepulse-ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -115,6 +119,7 @@ jobs:
 
   web-integration:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
       - uses: subosito/flutter-action@v2
@@ -128,6 +133,7 @@ jobs:
         run: |
           chromedriver --port=4444 &
           xvfb-run -a flutter drive \
+            --profile \
             --driver=test_driver/integration_test.dart \
             --target=integration_test/app_smoke_test.dart \
             -d chrome
