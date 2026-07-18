@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../config/app_capabilities.dart';
+import '../models/color_theme.dart';
 import '../providers/color_theme_provider.dart';
 import '../providers/font_settings_provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/audio_download_provider.dart';
 import '../providers/bible_provider.dart';
 import '../providers/reminder_provider.dart';
+import '../utils/app_theme.dart';
+import '../widgets/design/bp_widgets.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -19,24 +22,40 @@ class SettingsScreen extends StatelessWidget {
     final fonts = context.watch<FontSettingsProvider>();
     final capabilities = context.watch<AppCapabilities>();
     final amharic = appTheme.locale.languageCode == 'am';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final ink = isDark ? AppTheme.inkDark : AppTheme.ink;
 
     String text(String english, String amharicText) =>
         amharic ? amharicText : english;
 
     return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: Navigator.of(context).canPop(),
-        title: Text(text('Settings', 'ቅንብሮች')),
-      ),
+      backgroundColor: isDark ? AppTheme.appBgDark : AppTheme.appBgLight,
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 760),
             child: ListView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
               children: [
-                _Section(
-                  title: text('Appearance', 'ገጽታ'),
+                Row(
+                  children: [
+                    if (Navigator.of(context).canPop()) ...[
+                      BpIconButton(
+                        icon: Icons.arrow_back_ios_new_rounded,
+                        tooltip: 'Back',
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                    Text(
+                      text('Settings', 'ቅንብሮች'),
+                      style: AppTheme.brandTitle(fontSize: 22, color: ink),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                _SettingsSection(
+                  header: text('Appearance', 'ገጽታ'),
                   children: [
                     SegmentedButton<ThemeMode>(
                       showSelectedIcon: false,
@@ -63,8 +82,8 @@ class SettingsScreen extends StatelessWidget {
                     ),
                   ],
                 ),
-                _Section(
-                  title: text('Language', 'ቋንቋ'),
+                _SettingsSection(
+                  header: text('Language', 'ቋንቋ'),
                   children: [
                     RadioGroup<String>(
                       groupValue: appTheme.locale.languageCode,
@@ -73,51 +92,56 @@ class SettingsScreen extends StatelessWidget {
                           appTheme.setLocale(Locale(value));
                         }
                       },
-                      child: const Column(
+                      child: _ConnectedSet(
                         children: [
-                          RadioListTile<String>(
-                            value: 'en',
-                            title: Text('English'),
+                          _SetRow(
+                            position: _RowPosition.first,
+                            child: RadioListTile<String>(
+                              contentPadding:
+                                  const EdgeInsets.symmetric(horizontal: 14),
+                              value: 'en',
+                              title: Text(
+                                'English',
+                                style: AppTheme.ui(fontSize: 14, color: ink),
+                              ),
+                            ),
                           ),
-                          RadioListTile<String>(
-                            value: 'am',
-                            title: Text('አማርኛ'),
+                          _SetRow(
+                            position: _RowPosition.last,
+                            child: RadioListTile<String>(
+                              contentPadding:
+                                  const EdgeInsets.symmetric(horizontal: 14),
+                              value: 'am',
+                              title: Text(
+                                'አማርኛ',
+                                style: AppTheme.ui(fontSize: 14, color: ink),
+                              ),
+                            ),
                           ),
                         ],
                       ),
                     ),
                   ],
                 ),
-                _Section(
-                  title: text('Reader theme', 'የንባብ ገጽታ'),
+                _SettingsSection(
+                  header: text('Reader theme', 'የንባብ ገጽታ'),
                   children: [
-                    Wrap(
-                      spacing: 10,
-                      runSpacing: 10,
-                      children: readerTheme.availableThemes
-                          .map(
-                            (theme) => Semantics(
-                              label: '${theme.name} reader theme',
-                              selected: readerTheme.currentTheme.id == theme.id,
-                              button: true,
-                              child: ChoiceChip(
-                                selected:
-                                    readerTheme.currentTheme.id == theme.id,
-                                avatar: CircleAvatar(
-                                  backgroundColor: theme.backgroundColor,
-                                  child: Icon(
-                                    Icons.text_fields_rounded,
-                                    color: theme.textColor,
-                                    size: 16,
-                                  ),
-                                ),
-                                label: Text(theme.name),
-                                onSelected: (_) =>
-                                    readerTheme.setTheme(theme.id),
-                              ),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: readerTheme.availableThemes.map((theme) {
+                          final selected =
+                              readerTheme.currentTheme.id == theme.id;
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 12),
+                            child: _ReaderThemeSwatch(
+                              theme: theme,
+                              selected: selected,
+                              onTap: () => readerTheme.setTheme(theme.id),
                             ),
-                          )
-                          .toList(),
+                          );
+                        }).toList(),
+                      ),
                     ),
                     const SizedBox(height: 20),
                     _SliderSetting(
@@ -144,42 +168,210 @@ class SettingsScreen extends StatelessWidget {
                         onPressed: fonts.resetToDefaults,
                         icon: const Icon(Icons.restart_alt_rounded),
                         label: Text(
-                            text('Reset reader text', 'የንባብ ጽሑፍ ዳግም አስጀምር')),
+                          text('Reset reader text', 'የንባብ ጽሑፍ ዳግም አስጀምር'),
+                        ),
                       ),
                     ),
                   ],
                 ),
-                _Section(
-                  title: text('Feature availability', 'የባህሪ ተገኝነት'),
+                _SettingsSection(
+                  header: text('Feature availability', 'የባህሪ ተገኝነት'),
                   children: [
-                    _Capability(
-                      label:
-                          text('Cloud account and sync', 'የደመና መለያ እና ማመሳሰል'),
-                      available: capabilities.cloud,
-                    ),
-                    _Capability(
-                      label: text('Chapter audio', 'የምዕራፍ ድምጽ'),
-                      available: capabilities.audio,
-                    ),
-                    _Capability(
-                      label: text('Daily reminders', 'ዕለታዊ ማስታወሻዎች'),
-                      available: capabilities.notifications,
-                    ),
-                    _Capability(
-                      label: text('Wallpaper export', 'የግድግዳ ወረቀት ማስቀመጥ'),
-                      available: capabilities.wallpaperExport,
+                    _ConnectedSet(
+                      children: [
+                        _SetRow(
+                          position: _RowPosition.first,
+                          child: _Capability(
+                            label: text(
+                              'Cloud account and sync',
+                              'የደመና መለያ እና ማመሳሰል',
+                            ),
+                            available: capabilities.cloud,
+                          ),
+                        ),
+                        _SetRow(
+                          position: _RowPosition.middle,
+                          child: _Capability(
+                            label: text('Chapter audio', 'የምዕራፍ ድምጽ'),
+                            available: capabilities.audio,
+                          ),
+                        ),
+                        _SetRow(
+                          position: _RowPosition.middle,
+                          child: _Capability(
+                            label: text('Daily reminders', 'ዕለታዊ ማስታወሻዎች'),
+                            available: capabilities.notifications,
+                          ),
+                        ),
+                        _SetRow(
+                          position: _RowPosition.last,
+                          child: _Capability(
+                            label: text(
+                              'Wallpaper export',
+                              'የግድግዳ ወረቀት ማስቀመጥ',
+                            ),
+                            available: capabilities.wallpaperExport,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-                if (capabilities.audio)
-                  _AudioStorageSection(
-                    text: text,
-                  ),
+                if (capabilities.audio) _AudioStorageSection(text: text),
                 if (capabilities.notifications)
                   _ThemeNotificationSection(text: text),
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+enum _RowPosition { first, middle, last, only }
+
+class _SettingsSection extends StatelessWidget {
+  const _SettingsSection({required this.header, required this.children});
+
+  final String header;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          BpGroupHeader(header),
+          ...children,
+        ],
+      ),
+    );
+  }
+}
+
+class _ConnectedSet extends StatelessWidget {
+  const _ConnectedSet({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(children: children);
+  }
+}
+
+class _SetRow extends StatelessWidget {
+  const _SetRow({required this.position, required this.child});
+
+  final _RowPosition position;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final surface = isDark ? AppTheme.surfaceDark : AppTheme.surfaceLight;
+    final border = isDark ? AppTheme.borderDark : AppTheme.borderLight;
+
+    BorderRadius radius;
+    switch (position) {
+      case _RowPosition.first:
+        radius = const BorderRadius.vertical(top: Radius.circular(14));
+      case _RowPosition.last:
+        radius = const BorderRadius.vertical(bottom: Radius.circular(14));
+      case _RowPosition.only:
+        radius = BorderRadius.circular(14);
+      case _RowPosition.middle:
+        radius = BorderRadius.zero;
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: surface,
+        borderRadius: radius,
+        border: Border(
+          top: position == _RowPosition.first || position == _RowPosition.only
+              ? BorderSide(color: border)
+              : BorderSide.none,
+          left: BorderSide(color: border),
+          right: BorderSide(color: border),
+          bottom: BorderSide(color: border),
+        ),
+      ),
+      child: child,
+    );
+  }
+}
+
+class _ReaderThemeSwatch extends StatelessWidget {
+  const _ReaderThemeSwatch({
+    required this.theme,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final ReaderColorTheme theme;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final faint = isDark ? AppTheme.inkFaintDark : AppTheme.inkFaint;
+
+    return Semantics(
+      label: '${theme.name} reader theme',
+      selected: selected,
+      button: true,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Column(
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: theme.backgroundColor,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: selected
+                      ? AppTheme.gold
+                      : (isDark ? AppTheme.borderDark : AppTheme.borderLight),
+                  width: selected ? 2.5 : 1,
+                ),
+                boxShadow: selected
+                    ? [
+                        BoxShadow(
+                          color: AppTheme.gold.withValues(alpha: 0.35),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ]
+                    : null,
+              ),
+              child: Center(
+                child: Text(
+                  'Aa',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: theme.textColor,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              theme.name,
+              style: AppTheme.ui(
+                fontSize: 10,
+                weight: selected ? FontWeight.w600 : FontWeight.w500,
+                color: selected ? AppTheme.gold : faint,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -194,18 +386,23 @@ class _ThemeNotificationSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final reminders = context.watch<ReminderProvider>();
-    return _Section(
-      title: text('Theme notification', 'የጭብጥ ማሳወቂያ'),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final soft = isDark ? AppTheme.inkSoftDark : AppTheme.inkSoft;
+
+    return _SettingsSection(
+      header: text('Theme notification', 'የጭብጥ ማሳወቂያ'),
       children: [
         Text(
           text(
             'Choose the Scripture need used for the daily 8:00 reminder.',
             'ለዕለታዊ 8:00 ማሳወቂያ የቃሉን ጭብጥ ይምረጡ።',
           ),
+          style: AppTheme.ui(fontSize: 13, color: soft),
         ),
         const SizedBox(height: 12),
         Wrap(
           spacing: 8,
+          runSpacing: 8,
           children: [
             for (final theme in ReminderProvider.themes)
               ChoiceChip(
@@ -244,116 +441,151 @@ class _AudioStorageSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final downloads = context.watch<AudioDownloadProvider>();
     final sizeMb = downloads.cacheSizeBytes / (1024 * 1024);
-    return _Section(
-      title: text('Offline audio', 'ከመስመር ውጭ ድምጽ'),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final soft = isDark ? AppTheme.inkSoftDark : AppTheme.inkSoft;
+
+    return _SettingsSection(
+      header: text('Offline audio', 'ከመስመር ውጭ ድምጽ'),
       children: [
-        SwitchListTile(
-          contentPadding: EdgeInsets.zero,
-          title: Text(text('Wi-Fi only downloads', 'በWi-Fi ብቻ አውርድ')),
-          subtitle: Text(
-            text(
-              'Streaming-only filesets are never cached.',
-              'ለማውረድ ያልተፈቀዱ ድምጾች አይቀመጡም።',
+        _ConnectedSet(
+          children: [
+            _SetRow(
+              position: _RowPosition.first,
+              child: SwitchListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14),
+                title: Text(text('Wi-Fi only downloads', 'በWi-Fi ብቻ አውርድ')),
+                subtitle: Text(
+                  text(
+                    'Streaming-only filesets are never cached.',
+                    'ለማውረድ ያልተፈቀዱ ድምጾች አይቀመጡም።',
+                  ),
+                  style: AppTheme.ui(fontSize: 12, color: soft),
+                ),
+                value: downloads.wifiOnly,
+                onChanged: downloads.downloading ? null : downloads.setWifiOnly,
+              ),
             ),
-          ),
-          value: downloads.wifiOnly,
-          onChanged: downloads.downloading ? null : downloads.setWifiOnly,
-        ),
-        ListTile(
-          contentPadding: EdgeInsets.zero,
-          leading: const Icon(Icons.storage_rounded),
-          title: Text(text('Downloaded audio', 'የወረደ ድምጽ')),
-          subtitle: Text('${sizeMb.toStringAsFixed(1)} MB'),
-          trailing: TextButton(
-            onPressed: downloads.downloading
-                ? null
-                : () async {
-                    final confirmed = await showDialog<bool>(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: Text(text('Clear audio?', 'ድምጹን ይሰርዙ?')),
-                        content: Text(
-                          text(
-                            'Downloaded chapters will need to be downloaded again.',
-                            'የወረዱ ምዕራፎች እንደገና መውረድ ይኖርባቸዋል።',
-                          ),
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context, false),
-                            child: Text(text('Cancel', 'ይቅር')),
-                          ),
-                          FilledButton(
-                            onPressed: () => Navigator.pop(context, true),
-                            child: Text(text('Clear', 'ሰርዝ')),
-                          ),
-                        ],
-                      ),
-                    );
-                    if (confirmed == true) await downloads.clearCache();
-                  },
-            child: Text(text('Clear', 'ሰርዝ')),
-          ),
-        ),
-        ListTile(
-          contentPadding: EdgeInsets.zero,
-          leading: const Icon(Icons.download_for_offline_rounded),
-          title: Text(text('Download whole Bible audio', 'ሙሉ የመጽሐፍ ቅዱስ ድምጽ')),
-          subtitle: Text(
-            text(
-              'Only starts when the selected fileset is download-permitted.',
-              'የድምጽ ስብስቡ ለማውረድ ከተፈቀደ ብቻ ይጀምራል።',
+            _SetRow(
+              position: _RowPosition.middle,
+              child: ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14),
+                leading:
+                    const Icon(Icons.storage_rounded, color: AppTheme.teal),
+                title: Text(text('Downloaded audio', 'የወረደ ድምጽ')),
+                subtitle: Text('${sizeMb.toStringAsFixed(1)} MB'),
+                trailing: TextButton(
+                  onPressed: downloads.downloading
+                      ? null
+                      : () async {
+                          final confirmed = await showDialog<bool>(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: Text(
+                                text('Clear audio?', 'ድምጹን ይሰርዙ?'),
+                              ),
+                              content: Text(
+                                text(
+                                  'Downloaded chapters will need to be downloaded again.',
+                                  'የወረዱ ምዕራፎች እንደገና መውረድ ይኖርባቸዋል።',
+                                ),
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () =>
+                                      Navigator.pop(context, false),
+                                  child: Text(text('Cancel', 'ይቅር')),
+                                ),
+                                FilledButton(
+                                  onPressed: () => Navigator.pop(context, true),
+                                  child: Text(text('Clear', 'ሰርዝ')),
+                                ),
+                              ],
+                            ),
+                          );
+                          if (confirmed == true) await downloads.clearCache();
+                        },
+                  child: Text(text('Clear', 'ሰርዝ')),
+                ),
+              ),
             ),
-          ),
-          trailing: const Icon(Icons.chevron_right_rounded),
-          onTap: downloads.downloading
-              ? null
-              : () async {
-                  final books = context.read<BibleProvider>().books;
-                  final versionId =
-                      context.read<BibleProvider>().currentVersion;
-                  final chapters = [
-                    for (final book in books)
-                      for (var chapter = 1; chapter <= book.chapters; chapter++)
-                        (bookId: book.id, chapter: chapter),
-                  ];
-                  final confirmed = await showDialog<bool>(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title:
-                          Text(text('Download all audio?', 'ሁሉንም ድምጽ ያውርዱ?')),
-                      content: Text(
-                        text(
-                          '${chapters.length} chapters will download sequentially. '
-                              'Actual size depends on the licensed fileset.',
-                          '${chapters.length} ምዕራፎች በተከታታይ ይወርዳሉ።',
-                        ),
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context, false),
-                          child: Text(text('Cancel', 'ይቅር')),
-                        ),
-                        FilledButton(
-                          onPressed: () => Navigator.pop(context, true),
-                          child: Text(text('Download', 'አውርድ')),
-                        ),
-                      ],
-                    ),
-                  );
-                  if (confirmed == true) {
-                    await downloads.downloadChapters(
-                      versionId: versionId,
-                      chapters: chapters,
-                    );
-                  }
-                },
+            _SetRow(
+              position: _RowPosition.last,
+              child: ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14),
+                leading: const Icon(
+                  Icons.download_for_offline_rounded,
+                  color: AppTheme.teal,
+                ),
+                title: Text(
+                  text('Download whole Bible audio', 'ሙሉ የመጽሐፍ ቅዱስ ድምጽ'),
+                ),
+                subtitle: Text(
+                  text(
+                    'Only starts when the selected fileset is download-permitted.',
+                    'የድምጽ ስብስቡ ለማውረድ ከተፈቀደ ብቻ ይጀምራል።',
+                  ),
+                  style: AppTheme.ui(fontSize: 12, color: soft),
+                ),
+                trailing: Icon(
+                  Icons.chevron_right_rounded,
+                  color: isDark ? AppTheme.inkFaintDark : AppTheme.inkFaint,
+                ),
+                onTap: downloads.downloading
+                    ? null
+                    : () async {
+                        final books = context.read<BibleProvider>().books;
+                        final versionId =
+                            context.read<BibleProvider>().currentVersion;
+                        final chapters = [
+                          for (final book in books)
+                            for (var chapter = 1;
+                                chapter <= book.chapters;
+                                chapter++)
+                              (bookId: book.id, chapter: chapter),
+                        ];
+                        final confirmed = await showDialog<bool>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: Text(
+                              text('Download all audio?', 'ሁሉንም ድምጽ ያውርዱ?'),
+                            ),
+                            content: Text(
+                              text(
+                                '${chapters.length} chapters will download sequentially. '
+                                    'Actual size depends on the licensed fileset.',
+                                '${chapters.length} ምዕራፎች በተከታታይ ይወርዳሉ።',
+                              ),
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, false),
+                                child: Text(text('Cancel', 'ይቅር')),
+                              ),
+                              FilledButton(
+                                onPressed: () => Navigator.pop(context, true),
+                                child: Text(text('Download', 'አውርድ')),
+                              ),
+                            ],
+                          ),
+                        );
+                        if (confirmed == true) {
+                          await downloads.downloadChapters(
+                            versionId: versionId,
+                            chapters: chapters,
+                          );
+                        }
+                      },
+              ),
+            ),
+          ],
         ),
         if (downloads.downloading) ...[
+          const SizedBox(height: 12),
           LinearProgressIndicator(value: downloads.progress),
           const SizedBox(height: 8),
           Text(
             '${downloads.completedChapters}/${downloads.totalChapters} chapters',
+            style: AppTheme.ui(fontSize: 12, color: soft),
           ),
           Align(
             alignment: Alignment.centerLeft,
@@ -365,36 +597,14 @@ class _AudioStorageSection extends StatelessWidget {
           ),
         ],
         if (downloads.error != null)
-          Text(
-            downloads.error!,
-            style: TextStyle(color: Theme.of(context).colorScheme.error),
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              downloads.error!,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
           ),
       ],
-    );
-  }
-}
-
-class _Section extends StatelessWidget {
-  const _Section({required this.title, required this.children});
-
-  final String title;
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title, style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 16),
-            ...children,
-          ],
-        ),
-      ),
     );
   }
 }
@@ -420,6 +630,9 @@ class _SliderSetting extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final ink = isDark ? AppTheme.inkDark : AppTheme.ink;
+
     return Semantics(
       label: label,
       value: valueLabel,
@@ -427,7 +640,11 @@ class _SliderSetting extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('$label · $valueLabel'),
+          Text(
+            '$label · $valueLabel',
+            style:
+                AppTheme.ui(fontSize: 13, weight: FontWeight.w500, color: ink),
+          ),
           Slider(
             value: value,
             min: min,
@@ -450,17 +667,26 @@ class _Capability extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final ink = isDark ? AppTheme.inkDark : AppTheme.ink;
+    final faint = isDark ? AppTheme.inkFaintDark : AppTheme.inkFaint;
+
     return ListTile(
       minTileHeight: 48,
-      contentPadding: EdgeInsets.zero,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14),
       leading: Icon(
         available ? Icons.check_circle_rounded : Icons.lock_outline_rounded,
-        color: available
-            ? Theme.of(context).colorScheme.secondary
-            : Theme.of(context).colorScheme.onSurfaceVariant,
+        color: available ? AppTheme.teal : faint,
       ),
-      title: Text(label),
-      trailing: Text(available ? 'Available' : 'Not configured'),
+      title: Text(label, style: AppTheme.ui(fontSize: 14, color: ink)),
+      trailing: Text(
+        available ? 'Available' : 'Not configured',
+        style: AppTheme.ui(
+          fontSize: 11,
+          weight: FontWeight.w500,
+          color: faint,
+        ),
+      ),
     );
   }
 }

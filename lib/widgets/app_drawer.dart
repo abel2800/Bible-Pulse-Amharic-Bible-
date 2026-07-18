@@ -6,6 +6,7 @@ import '../providers/study_provider.dart';
 import '../services/auth_service.dart';
 import '../services/study_sync_service.dart';
 import '../utils/app_theme.dart';
+import 'design/bp_widgets.dart';
 
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});
@@ -13,138 +14,165 @@ class AppDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final capabilities = context.watch<AppCapabilities>();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final ink = isDark ? AppTheme.inkDark : AppTheme.ink;
+    final inkSoft = isDark ? AppTheme.inkSoftDark : AppTheme.inkSoft;
 
-    return NavigationDrawer(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(28, 28, 28, 20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const CircleAvatar(
-                radius: 26,
-                backgroundColor: AppTheme.primaryIndigo,
-                foregroundColor: AppTheme.parchment,
-                child: Icon(Icons.auto_stories_rounded),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'BiblePulse',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Offline reading',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+    return Drawer(
+      backgroundColor: isDark ? AppTheme.appBgDark : AppTheme.appBgLight,
+      child: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const BpBrandMark(size: 52),
+                  const SizedBox(height: 16),
+                  Text.rich(
+                    TextSpan(
+                      style: AppTheme.brandTitle(fontSize: 22, color: ink),
+                      children: const [
+                        TextSpan(text: 'Bible'),
+                        TextSpan(
+                          text: 'Pulse',
+                          style: TextStyle(color: AppTheme.gold),
+                        ),
+                      ],
                     ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Offline reading',
+                    style: AppTheme.ui(fontSize: 12.5, color: inkSoft),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            const BpRule(),
+            _item(context, Icons.search_rounded, 'Search', '/search'),
+            if (capabilities.devotionals)
+              _item(
+                context,
+                Icons.self_improvement_rounded,
+                'Devotionals',
+                '/devotions',
+              ),
+            if (capabilities.readingPlans)
+              _item(
+                context,
+                Icons.route_rounded,
+                'Reading plans',
+                '/reading_plans',
+              ),
+            if (capabilities.cloud && capabilities.readingPlans)
+              _item(
+                context,
+                Icons.groups_rounded,
+                'Private reading groups',
+                '/study_groups',
+              ),
+            if (capabilities.hymns)
+              _item(context, Icons.music_note_rounded, 'Hymns', '/hymns'),
+            _item(
+              context,
+              Icons.volunteer_activism_rounded,
+              'Prayer journal',
+              '/prayer_journal',
+            ),
+            if (capabilities.community)
+              _item(context, Icons.forum_outlined, 'Community', '/community'),
+            _item(
+              context,
+              Icons.wallpaper_rounded,
+              'Verse wallpaper',
+              '/wallpaper',
+              enabled: capabilities.wallpaperExport,
+            ),
+            const SizedBox(height: 8),
+            const BpRule(),
+            if (!capabilities.cloud)
+              ListTile(
+                minTileHeight: 48,
+                leading: Icon(Icons.cloud_off_rounded, color: inkSoft),
+                title: Text(
+                  'Cloud sync not configured',
+                  style: AppTheme.ui(fontSize: 13, color: inkSoft),
+                ),
+              )
+            else if (context.watch<AuthService>().currentUser == null)
+              _item(context, Icons.login_rounded, 'Sign in to sync', '/auth')
+            else ...[
+              ListTile(
+                minTileHeight: 48,
+                leading: Icon(Icons.sync_rounded, color: inkSoft),
+                title: Text(
+                  'Sync study data',
+                  style: AppTheme.ui(
+                      fontSize: 13.5, weight: FontWeight.w500, color: ink),
+                ),
+                onTap: () async {
+                  final user = context.read<AuthService>().currentUser!;
+                  await context.read<StudyProvider>().synchronize(
+                        context.read<StudySyncGateway>(),
+                        user.uid,
+                      );
+                  if (context.mounted) Navigator.pop(context);
+                },
+              ),
+              ListTile(
+                minTileHeight: 48,
+                leading: Icon(Icons.logout_rounded, color: inkSoft),
+                title: Text(
+                  'Sign out',
+                  style: AppTheme.ui(
+                      fontSize: 13.5, weight: FontWeight.w500, color: ink),
+                ),
+                onTap: () async {
+                  await context.read<AuthService>().signOut();
+                  if (context.mounted) Navigator.pop(context);
+                },
               ),
             ],
-          ),
+          ],
         ),
-        const Divider(),
-        _destination(context, Icons.search_rounded, 'Search', '/search'),
-        if (capabilities.devotionals)
-          _destination(
-            context,
-            Icons.self_improvement_rounded,
-            'Devotionals',
-            '/devotions',
-          ),
-        if (capabilities.readingPlans)
-          _destination(
-            context,
-            Icons.route_rounded,
-            'Reading plans',
-            '/reading_plans',
-          ),
-        if (capabilities.cloud && capabilities.readingPlans)
-          _destination(
-            context,
-            Icons.groups_rounded,
-            'Private reading groups',
-            '/study_groups',
-          ),
-        if (capabilities.hymns)
-          _destination(context, Icons.music_note_rounded, 'Hymns', '/hymns'),
-        _destination(
-          context,
-          Icons.volunteer_activism_rounded,
-          'Prayer journal',
-          '/prayer_journal',
-        ),
-        if (capabilities.community)
-          _destination(
-            context,
-            Icons.forum_outlined,
-            'Community',
-            '/community',
-          ),
-        _destination(
-          context,
-          Icons.wallpaper_rounded,
-          'Verse wallpaper',
-          '/wallpaper',
-          enabled: capabilities.wallpaperExport,
-        ),
-        const Divider(),
-        if (!capabilities.cloud)
-          const ListTile(
-            minTileHeight: 48,
-            leading: Icon(Icons.cloud_off_rounded),
-            title: Text('Cloud sync not configured'),
-          )
-        else if (context.watch<AuthService>().currentUser == null)
-          _destination(
-            context,
-            Icons.login_rounded,
-            'Sign in to sync',
-            '/auth',
-          )
-        else ...[
-          ListTile(
-            minTileHeight: 48,
-            leading: const Icon(Icons.sync_rounded),
-            title: const Text('Sync study data'),
-            onTap: () async {
-              final user = context.read<AuthService>().currentUser!;
-              await context.read<StudyProvider>().synchronize(
-                    context.read<StudySyncGateway>(),
-                    user.uid,
-                  );
-              if (context.mounted) Navigator.pop(context);
-            },
-          ),
-          ListTile(
-            minTileHeight: 48,
-            leading: const Icon(Icons.logout_rounded),
-            title: const Text('Sign out'),
-            onTap: () async {
-              await context.read<AuthService>().signOut();
-              if (context.mounted) Navigator.pop(context);
-            },
-          ),
-        ],
-        const SizedBox(height: 16),
-      ],
+      ),
     );
   }
 
-  Widget _destination(
+  Widget _item(
     BuildContext context,
     IconData icon,
     String label,
     String route, {
     bool enabled = true,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final ink = isDark ? AppTheme.inkDark : AppTheme.ink;
+    final inkSoft = isDark ? AppTheme.inkSoftDark : AppTheme.inkSoft;
+    final faint = isDark ? AppTheme.inkFaintDark : AppTheme.inkFaint;
+
     return ListTile(
       minTileHeight: 48,
       enabled: enabled,
-      leading: Icon(icon),
-      title: Text(label),
-      trailing: enabled
-          ? const Icon(Icons.chevron_right_rounded)
-          : const Icon(Icons.lock_outline_rounded, size: 18),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      leading: Icon(icon, color: enabled ? inkSoft : faint),
+      title: Text(
+        label,
+        style: AppTheme.ui(
+          fontSize: 13.5,
+          weight: FontWeight.w500,
+          color: enabled ? ink : faint,
+        ),
+      ),
+      trailing: Icon(
+        enabled ? Icons.chevron_right_rounded : Icons.lock_outline_rounded,
+        size: 18,
+        color: faint,
+      ),
       onTap: enabled
           ? () {
               Navigator.pop(context);

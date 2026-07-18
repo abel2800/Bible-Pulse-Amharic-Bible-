@@ -7,6 +7,8 @@ import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../config/app_capabilities.dart';
+import '../utils/app_theme.dart';
+import '../widgets/design/bp_widgets.dart';
 
 class WallpaperGeneratorScreen extends StatefulWidget {
   const WallpaperGeneratorScreen({super.key});
@@ -32,44 +34,49 @@ class _WallpaperGeneratorScreenState extends State<WallpaperGeneratorScreen> {
     const LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
-      colors: [Color(0xFF0B2545), Color(0xFF2EC4B6)],
+      colors: [AppTheme.appBgDark, AppTheme.teal],
     ),
     const LinearGradient(
       begin: Alignment.topCenter,
       end: Alignment.bottomCenter,
-      colors: [Color(0xFF4CAF50), Color(0xFF66BB6A)],
+      colors: [Color(0xFF6E8B3D), AppTheme.teal],
     ),
     const LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
-      colors: [Color(0xFFFF6B6B), Color(0xFFFFB4B4)],
+      colors: [AppTheme.vermilion, AppTheme.goldSoft],
     ),
     const LinearGradient(
       begin: Alignment.topRight,
       end: Alignment.bottomLeft,
-      colors: [Color(0xFF2196F3), Color(0xFF64B5F6)],
+      colors: [AppTheme.gold, AppTheme.onGold],
     ),
     const LinearGradient(
       begin: Alignment.topCenter,
       end: Alignment.bottomCenter,
-      colors: [Color(0xFF9C27B0), Color(0xFFBA68C8)],
+      colors: [Color(0xFF7B5EA7), AppTheme.appBgDark],
     ),
     const LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
-      colors: [Color(0xFFFF9800), Color(0xFFFFB74D)],
+      colors: [AppTheme.goldSoft, AppTheme.gold],
     ),
     const LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
-      colors: [Color(0xFF1a1a2e), Color(0xFF16213e), Color(0xFF0f3460)],
+      colors: [
+        AppTheme.appBgDark,
+        AppTheme.surface2Dark,
+        AppTheme.surfaceDark,
+      ],
     ),
     const LinearGradient(
       begin: Alignment.topCenter,
       end: Alignment.bottomCenter,
-      colors: [Color(0xFF00416A), Color(0xFFE4E5E6)],
+      colors: [AppTheme.teal, AppTheme.appBgLight],
     ),
   ];
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -85,198 +92,244 @@ class _WallpaperGeneratorScreenState extends State<WallpaperGeneratorScreen> {
   @override
   Widget build(BuildContext context) {
     final capabilities = context.watch<AppCapabilities>();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final ink = isDark ? AppTheme.inkDark : AppTheme.ink;
+    final border = isDark ? AppTheme.borderDark : AppTheme.borderLight;
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Create Verse Card',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.download_rounded),
-            onPressed: capabilities.wallpaperExport ? _saveWallpaper : null,
-            tooltip: capabilities.wallpaperExport
-                ? 'Save wallpaper'
-                : 'Wallpaper export is unavailable on this platform',
-          ),
-          IconButton(
-            icon: const Icon(Icons.share_rounded),
-            onPressed: _shareCard,
-            tooltip: 'Share branded verse card',
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
+      body: SafeArea(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: const EdgeInsets.all(16),
-              child: AspectRatio(
-                aspectRatio: _aspectRatio,
-                child: Screenshot(
-                  controller: _screenshotController,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: _backgrounds[_selectedBackgroundIndex],
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    padding: const EdgeInsets.all(32),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          _textController.text,
-                          textAlign: _textAlign,
-                          style: TextStyle(
-                            fontSize: _fontSize,
-                            fontWeight: FontWeight.w600,
-                            color: _textColor,
-                            height: 1.5,
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        Text(
-                          _referenceController.text,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: _fontSize * 0.6,
-                            color: _textColor.withValues(alpha: 0.9),
-                            fontStyle: FontStyle.italic,
-                          ),
-                        ),
-                        const Spacer(),
-                        Text(
-                          'BiblePulse',
-                          style: TextStyle(
-                            color: _textColor.withValues(alpha: 0.8),
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 1.2,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+              child: Row(
                 children: [
-                  TextField(
-                    controller: _textController,
-                    maxLines: 3,
-                    decoration: const InputDecoration(
-                      labelText: 'Verse Text',
-                      hintText: 'Enter your verse here',
-                    ),
-                    onChanged: (_) => setState(() {}),
+                  BpIconButton(
+                    icon: Icons.arrow_back_ios_new_rounded,
+                    tooltip: 'Back',
+                    onPressed: () => Navigator.pop(context),
                   ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _referenceController,
-                    decoration: const InputDecoration(
-                      labelText: 'Reference',
-                      hintText: 'e.g., John 3:16',
-                    ),
-                    onChanged: (_) => setState(() {}),
-                  ),
-                  const SizedBox(height: 24),
-                  const Text(
-                    'Format',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 12),
-                  SegmentedButton<double>(
-                    segments: const [
-                      ButtonSegment(value: 1, label: Text('Square')),
-                      ButtonSegment(value: 4 / 5, label: Text('Feed')),
-                      ButtonSegment(value: 9 / 16, label: Text('Status')),
-                    ],
-                    selected: {_aspectRatio},
-                    onSelectionChanged: (value) =>
-                        setState(() => _aspectRatio = value.first),
-                  ),
-                  const SizedBox(height: 24),
-                  const Text(
-                    'Background',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    height: 60,
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: _backgrounds.length,
-                      itemBuilder: (context, index) {
-                        return GestureDetector(
-                          onTap: () =>
-                              setState(() => _selectedBackgroundIndex = index),
-                          child: Container(
-                            width: 60,
-                            margin: const EdgeInsets.only(right: 12),
-                            decoration: BoxDecoration(
-                              gradient: _backgrounds[index],
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: _selectedBackgroundIndex == index
-                                    ? Theme.of(context).colorScheme.primary
-                                    : Colors.transparent,
-                                width: 3,
-                              ),
-                            ),
-                          ),
-                        );
-                      },
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Create Verse Card',
+                      style: AppTheme.brandTitle(fontSize: 22, color: ink),
                     ),
                   ),
-                  const SizedBox(height: 24),
-                  const Text(
-                    'Font Size',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  BpIconButton(
+                    icon: Icons.download_rounded,
+                    tooltip: capabilities.wallpaperExport
+                        ? 'Save wallpaper'
+                        : 'Wallpaper export is unavailable on this platform',
+                    onPressed:
+                        capabilities.wallpaperExport ? _saveWallpaper : null,
                   ),
-                  Slider(
-                    value: _fontSize,
-                    min: 16,
-                    max: 36,
-                    divisions: 20,
-                    label: _fontSize.round().toString(),
-                    onChanged: (value) => setState(() => _fontSize = value),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Text Color',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      _buildColorOption(Colors.white),
-                      _buildColorOption(Colors.black),
-                      _buildColorOption(const Color(0xFFFFEB3B)),
-                      _buildColorOption(const Color(0xFF4CAF50)),
-                      _buildColorOption(const Color(0xFF2196F3)),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  const Text(
-                    'Text Alignment',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      _buildAlignmentButton(
-                          Icons.format_align_left, TextAlign.left),
-                      _buildAlignmentButton(
-                          Icons.format_align_center, TextAlign.center),
-                      _buildAlignmentButton(
-                          Icons.format_align_right, TextAlign.right),
-                    ],
+                  const SizedBox(width: 8),
+                  BpIconButton(
+                    icon: Icons.share_rounded,
+                    tooltip: 'Share branded verse card',
+                    onPressed: _shareCard,
                   ),
                 ],
+              ),
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: AspectRatio(
+                        aspectRatio: _aspectRatio,
+                        child: Screenshot(
+                          controller: _screenshotController,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: _backgrounds[_selectedBackgroundIndex],
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: border),
+                            ),
+                            padding: const EdgeInsets.all(32),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  _textController.text,
+                                  textAlign: _textAlign,
+                                  style: AppTheme.brandTitle(
+                                    fontSize: _fontSize,
+                                    weight: FontWeight.w500,
+                                    color: _textColor,
+                                  ).copyWith(height: 1.55),
+                                ),
+                                const SizedBox(height: 24),
+                                if (_referenceController.text.isNotEmpty)
+                                  Text(
+                                    _referenceController.text.toUpperCase(),
+                                    textAlign: TextAlign.center,
+                                    style: AppTheme.ui(
+                                      fontSize: _fontSize * 0.45,
+                                      weight: FontWeight.w700,
+                                      letterSpacing: 0.8,
+                                      color: AppTheme.gold,
+                                    ),
+                                  ),
+                                const Spacer(),
+                                Text(
+                                  'BiblePulse',
+                                  style: AppTheme.brandTitle(
+                                    fontSize: 14,
+                                    weight: FontWeight.w700,
+                                    color: AppTheme.gold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          TextField(
+                            controller: _textController,
+                            maxLines: 3,
+                            style: AppTheme.scripture(fontSize: 15, color: ink),
+                            decoration: const InputDecoration(
+                              labelText: 'Verse Text',
+                              hintText: 'Enter your verse here',
+                            ),
+                            onChanged: (_) => setState(() {}),
+                          ),
+                          const SizedBox(height: 16),
+                          TextField(
+                            controller: _referenceController,
+                            style: AppTheme.ui(fontSize: 14, color: ink),
+                            decoration: const InputDecoration(
+                              labelText: 'Reference',
+                              hintText: 'e.g., John 3:16',
+                            ),
+                            onChanged: (_) => setState(() {}),
+                          ),
+                          const SizedBox(height: 24),
+                          const BpSectionLabel(title: 'Format'),
+                          SegmentedButton<double>(
+                            segments: [
+                              ButtonSegment(
+                                value: 1,
+                                label: Text(
+                                  'Square',
+                                  style: AppTheme.ui(fontSize: 12),
+                                ),
+                              ),
+                              ButtonSegment(
+                                value: 4 / 5,
+                                label: Text(
+                                  'Feed',
+                                  style: AppTheme.ui(fontSize: 12),
+                                ),
+                              ),
+                              ButtonSegment(
+                                value: 9 / 16,
+                                label: Text(
+                                  'Status',
+                                  style: AppTheme.ui(fontSize: 12),
+                                ),
+                              ),
+                            ],
+                            selected: {_aspectRatio},
+                            onSelectionChanged: (value) =>
+                                setState(() => _aspectRatio = value.first),
+                          ),
+                          const SizedBox(height: 24),
+                          const BpSectionLabel(title: 'Background'),
+                          SizedBox(
+                            height: 60,
+                            child: ListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: _backgrounds.length,
+                              itemBuilder: (context, index) {
+                                return GestureDetector(
+                                  onTap: () => setState(
+                                    () => _selectedBackgroundIndex = index,
+                                  ),
+                                  child: Container(
+                                    width: 60,
+                                    margin: const EdgeInsets.only(right: 12),
+                                    decoration: BoxDecoration(
+                                      gradient: _backgrounds[index],
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: _selectedBackgroundIndex == index
+                                            ? AppTheme.gold
+                                            : Colors.transparent,
+                                        width: 3,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          const BpSectionLabel(title: 'Font Size'),
+                          SliderTheme(
+                            data: SliderTheme.of(context).copyWith(
+                              activeTrackColor: AppTheme.gold,
+                              inactiveTrackColor: border,
+                              thumbColor: AppTheme.gold,
+                              overlayColor:
+                                  AppTheme.gold.withValues(alpha: 0.15),
+                            ),
+                            child: Slider(
+                              value: _fontSize,
+                              min: 16,
+                              max: 36,
+                              divisions: 20,
+                              label: _fontSize.round().toString(),
+                              onChanged: (value) =>
+                                  setState(() => _fontSize = value),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          const BpSectionLabel(title: 'Text Color'),
+                          Row(
+                            children: [
+                              _buildColorOption(Colors.white),
+                              _buildColorOption(AppTheme.onGold),
+                              _buildColorOption(AppTheme.goldSoft),
+                              _buildColorOption(AppTheme.teal),
+                              _buildColorOption(AppTheme.ink),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
+                          const BpSectionLabel(title: 'Text Alignment'),
+                          Row(
+                            children: [
+                              _buildAlignmentButton(
+                                Icons.format_align_left,
+                                TextAlign.left,
+                              ),
+                              _buildAlignmentButton(
+                                Icons.format_align_center,
+                                TextAlign.center,
+                              ),
+                              _buildAlignmentButton(
+                                Icons.format_align_right,
+                                TextAlign.right,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
@@ -301,6 +354,9 @@ class _WallpaperGeneratorScreenState extends State<WallpaperGeneratorScreen> {
   }
 
   Widget _buildColorOption(Color color) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final border = isDark ? AppTheme.borderDark : AppTheme.borderLight;
+
     return GestureDetector(
       onTap: () => setState(() => _textColor = color),
       child: Container(
@@ -311,9 +367,7 @@ class _WallpaperGeneratorScreenState extends State<WallpaperGeneratorScreen> {
           color: color,
           shape: BoxShape.circle,
           border: Border.all(
-            color: _textColor == color
-                ? Theme.of(context).colorScheme.primary
-                : Colors.grey,
+            color: _textColor == color ? AppTheme.gold : border,
             width: _textColor == color ? 3 : 1,
           ),
         ),
@@ -322,20 +376,32 @@ class _WallpaperGeneratorScreenState extends State<WallpaperGeneratorScreen> {
   }
 
   Widget _buildAlignmentButton(IconData icon, TextAlign align) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final surface = isDark ? AppTheme.surfaceDark : AppTheme.surfaceLight;
+    final border = isDark ? AppTheme.borderDark : AppTheme.borderLight;
+    final ink = isDark ? AppTheme.inkDark : AppTheme.ink;
+    final selected = _textAlign == align;
+
     return Expanded(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 4),
-        child: ElevatedButton(
-          onPressed: () => setState(() => _textAlign = align),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: _textAlign == align
-                ? Theme.of(context).colorScheme.primary
-                : Theme.of(context).cardColor,
-            foregroundColor: _textAlign == align
-                ? Colors.white
-                : Theme.of(context).colorScheme.onSurface,
+        child: Material(
+          color: selected ? AppTheme.gold : surface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: selected ? AppTheme.gold : border),
           ),
-          child: Icon(icon),
+          child: InkWell(
+            onTap: () => setState(() => _textAlign = align),
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Icon(
+                icon,
+                color: selected ? AppTheme.onGold : ink,
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -346,10 +412,12 @@ class _WallpaperGeneratorScreenState extends State<WallpaperGeneratorScreen> {
       if (kIsWeb) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
+            SnackBar(
               content: Text(
-                  'Wallpaper feature works on mobile devices. On web, take a screenshot instead!'),
-              duration: Duration(seconds: 3),
+                'Wallpaper feature works on mobile devices. On web, take a screenshot instead!',
+                style: AppTheme.ui(fontSize: 13),
+              ),
+              duration: const Duration(seconds: 3),
             ),
           );
         }
@@ -360,7 +428,12 @@ class _WallpaperGeneratorScreenState extends State<WallpaperGeneratorScreen> {
       if (!status.isGranted) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Storage permission is required')),
+            SnackBar(
+              content: Text(
+                'Storage permission is required',
+                style: AppTheme.ui(fontSize: 13),
+              ),
+            ),
           );
         }
         return;
@@ -372,10 +445,13 @@ class _WallpaperGeneratorScreenState extends State<WallpaperGeneratorScreen> {
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('✨ Wallpaper saved to gallery!'),
-              backgroundColor: Colors.green,
-              duration: Duration(seconds: 2),
+            SnackBar(
+              content: Text(
+                'Wallpaper saved to gallery!',
+                style: AppTheme.ui(fontSize: 13),
+              ),
+              backgroundColor: AppTheme.success,
+              duration: const Duration(seconds: 2),
             ),
           );
         }
@@ -383,9 +459,12 @@ class _WallpaperGeneratorScreenState extends State<WallpaperGeneratorScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Note: Wallpaper saving works on mobile devices'),
-            duration: Duration(seconds: 2),
+          SnackBar(
+            content: Text(
+              'Note: Wallpaper saving works on mobile devices',
+              style: AppTheme.ui(fontSize: 13),
+            ),
+            duration: const Duration(seconds: 2),
           ),
         );
       }

@@ -3,7 +3,11 @@ import 'package:provider/provider.dart';
 
 import '../providers/bible_provider.dart';
 import '../providers/navigation_provider.dart';
-import '../widgets/verse_card.dart';
+import '../models/bible_verse.dart';
+import '../utils/app_theme.dart';
+import '../widgets/design/bp_widgets.dart';
+
+enum _TestamentFilter { all, ot, nt }
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -14,6 +18,8 @@ class SearchScreen extends StatefulWidget {
 
 class _SearchScreenState extends State<SearchScreen> {
   final TextEditingController _controller = TextEditingController();
+  _TestamentFilter _filter = _TestamentFilter.all;
+  String _query = '';
 
   @override
   void dispose() {
@@ -21,68 +27,245 @@ class _SearchScreenState extends State<SearchScreen> {
     super.dispose();
   }
 
+  List<BibleVerse> _filteredResults(List<BibleVerse> results) {
+    switch (_filter) {
+      case _TestamentFilter.ot:
+        return results.where((v) => v.book <= 39).toList();
+      case _TestamentFilter.nt:
+        return results.where((v) => v.book > 39).toList();
+      case _TestamentFilter.all:
+        return results;
+    }
+  }
+
+  void _search(BibleProvider bibleProvider) {
+    final value = _controller.text.trim();
+    if (value.isEmpty) return;
+    setState(() => _query = value);
+    bibleProvider.searchVerses(value);
+  }
+
   @override
   Widget build(BuildContext context) {
     final bibleProvider = Provider.of<BibleProvider>(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final ink = isDark ? AppTheme.inkDark : AppTheme.ink;
+    final faint = isDark ? AppTheme.inkFaintDark : AppTheme.inkFaint;
+    final soft = isDark ? AppTheme.inkSoftDark : AppTheme.inkSoft;
+    final results = _filteredResults(bibleProvider.searchResults);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Search Bible'),
-      ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            children: [
-              TextField(
-                controller: _controller,
-                decoration: const InputDecoration(
-                  hintText: 'Enter search term',
-                  prefixIcon: Icon(Icons.search),
-                ),
-                textInputAction: TextInputAction.search,
-                onSubmitted: (value) {
-                  if (value.trim().isNotEmpty) {
-                    bibleProvider.searchVerses(value.trim());
-                  }
-                },
-              ),
-              const SizedBox(height: 12),
-              if (bibleProvider.isSearching)
-                const Expanded(
-                    child: Center(child: CircularProgressIndicator()))
-              else if (bibleProvider.searchResults.isEmpty)
-                const Expanded(child: Center(child: Text('No results')))
-              else
-                Expanded(
-                  child: ListView.separated(
-                    itemCount: bibleProvider.searchResults.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 8),
-                    itemBuilder: (context, index) {
-                      final verse = bibleProvider.searchResults[index];
-                      final reference = bibleProvider.getVerseReference(verse);
-                      return InkWell(
-                        onTap: () async {
-                          final navigation = context.read<NavigationProvider>();
-                          await bibleProvider.goToVerse(
-                              verse.book, verse.chapter, verse.verse);
-                          if (!context.mounted) return;
-                          navigation.setIndex(1);
-                          Navigator.pop(context);
-                        },
-                        child: VerseCard(
-                          verse: verse,
-                          reference: reference,
-                          isHighlighted: false,
-                        ),
-                      );
-                    },
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+              child: Row(
+                children: [
+                  if (Navigator.of(context).canPop()) ...[
+                    BpIconButton(
+                      icon: Icons.arrow_back_ios_new_rounded,
+                      tooltip: 'Back',
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  Text(
+                    'Search',
+                    style: AppTheme.brandTitle(fontSize: 22, color: ink),
                   ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+              child: BpCard(
+                padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
+                child: TextField(
+                  controller: _controller,
+                  style: AppTheme.ui(fontSize: 14, color: ink),
+                  decoration: InputDecoration(
+                    hintText: 'Search Scripture…',
+                    hintStyle: AppTheme.ui(fontSize: 14, color: faint),
+                    prefixIcon:
+                        Icon(Icons.search_rounded, color: soft, size: 20),
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                  ),
+                  textInputAction: TextInputAction.search,
+                  onSubmitted: (_) => _search(bibleProvider),
                 ),
-            ],
-          ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+              child: Row(
+                children: [
+                  _FilterChip(
+                    label: 'All',
+                    selected: _filter == _TestamentFilter.all,
+                    onTap: () => setState(() => _filter = _TestamentFilter.all),
+                  ),
+                  const SizedBox(width: 8),
+                  _FilterChip(
+                    label: 'OT',
+                    selected: _filter == _TestamentFilter.ot,
+                    onTap: () => setState(() => _filter = _TestamentFilter.ot),
+                  ),
+                  const SizedBox(width: 8),
+                  _FilterChip(
+                    label: 'NT',
+                    selected: _filter == _TestamentFilter.nt,
+                    onTap: () => setState(() => _filter = _TestamentFilter.nt),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Expanded(
+              child: bibleProvider.isSearching
+                  ? const Center(child: CircularProgressIndicator())
+                  : _query.isEmpty
+                      ? Center(
+                          child: Text(
+                            'Enter a word or phrase to search',
+                            style: AppTheme.ui(fontSize: 13, color: faint),
+                          ),
+                        )
+                      : results.isEmpty
+                          ? Center(
+                              child: Text(
+                                'No results',
+                                style: AppTheme.ui(fontSize: 13, color: faint),
+                              ),
+                            )
+                          : ListView.separated(
+                              padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                              itemCount: results.length,
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(height: 10),
+                              itemBuilder: (context, index) {
+                                final verse = results[index];
+                                final reference =
+                                    bibleProvider.getVerseReference(verse);
+                                return BpCard(
+                                  padding: const EdgeInsets.all(14),
+                                  onTap: () async {
+                                    final navigation =
+                                        context.read<NavigationProvider>();
+                                    await bibleProvider.goToVerse(
+                                      verse.book,
+                                      verse.chapter,
+                                      verse.verse,
+                                    );
+                                    if (!context.mounted) return;
+                                    navigation.setIndex(1);
+                                    Navigator.pop(context);
+                                  },
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        reference.toUpperCase(),
+                                        style: AppTheme.ui(
+                                          fontSize: 11,
+                                          weight: FontWeight.w700,
+                                          letterSpacing: 0.6,
+                                          color: AppTheme.gold,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      _HighlightedText(
+                                        text: verse.text,
+                                        query: _query,
+                                        style: AppTheme.scripture(
+                                          fontSize: 15,
+                                          height: 1.65,
+                                          color: ink,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+            ),
+          ],
         ),
       ),
     );
+  }
+}
+
+class _FilterChip extends StatelessWidget {
+  const _FilterChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: BpPill(label: label, filled: selected),
+    );
+  }
+}
+
+class _HighlightedText extends StatelessWidget {
+  const _HighlightedText({
+    required this.text,
+    required this.query,
+    required this.style,
+  });
+
+  final String text;
+  final String query;
+  final TextStyle style;
+
+  @override
+  Widget build(BuildContext context) {
+    if (query.trim().isEmpty) {
+      return Text(text, style: style);
+    }
+
+    final lowerText = text.toLowerCase();
+    final lowerQuery = query.toLowerCase();
+    final spans = <TextSpan>[];
+    var start = 0;
+
+    while (true) {
+      final index = lowerText.indexOf(lowerQuery, start);
+      if (index == -1) {
+        if (start < text.length) {
+          spans.add(TextSpan(text: text.substring(start), style: style));
+        }
+        break;
+      }
+      if (index > start) {
+        spans.add(TextSpan(text: text.substring(start, index), style: style));
+      }
+      spans.add(
+        TextSpan(
+          text: text.substring(index, index + lowerQuery.length),
+          style: style.copyWith(
+            backgroundColor: AppTheme.gold.withValues(alpha: 0.35),
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      );
+      start = index + lowerQuery.length;
+    }
+
+    return RichText(text: TextSpan(children: spans));
   }
 }

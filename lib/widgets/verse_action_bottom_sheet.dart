@@ -1,16 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../config/app_capabilities.dart';
 import '../models/bible_verse.dart';
 import '../providers/study_provider.dart';
-import '../providers/theme_provider.dart';
 import '../providers/hymn_provider.dart';
 import '../services/cross_reference_service.dart';
 import '../utils/app_theme.dart';
+import 'design/bp_widgets.dart';
 
 class VerseActionBottomSheet extends StatefulWidget {
   final BibleVerse verse;
@@ -28,6 +27,7 @@ class VerseActionBottomSheet extends StatefulWidget {
 
 class _VerseActionBottomSheetState extends State<VerseActionBottomSheet> {
   final TextEditingController _noteController = TextEditingController();
+  bool _showNoteField = false;
 
   @override
   void initState() {
@@ -36,16 +36,20 @@ class _VerseActionBottomSheetState extends State<VerseActionBottomSheet> {
     final existingNote = studyProvider.getNoteForVerse(widget.reference);
     if (existingNote != null) {
       _noteController.text = existingNote.text;
+      _showNoteField = true;
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final studyProvider = Provider.of<StudyProvider>(context);
-    final themeProvider = Provider.of<ThemeProvider>(context);
     final isHighlighted = studyProvider.isHighlighted(widget.reference);
     final isBookmarked = studyProvider.isBookmarked(widget.reference);
-    final isDark = themeProvider.isDarkMode;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final surface = isDark ? AppTheme.surfaceDark : AppTheme.surfaceLight;
+    final ink = isDark ? AppTheme.inkDark : AppTheme.ink;
+    final inkSoft = isDark ? AppTheme.inkSoftDark : AppTheme.inkSoft;
+    final border = isDark ? AppTheme.borderDark : AppTheme.borderLight;
     final capabilities = context.watch<AppCapabilities>();
     final linkedHymns = capabilities.hymns
         ? context
@@ -63,32 +67,17 @@ class _VerseActionBottomSheetState extends State<VerseActionBottomSheet> {
 
     return Container(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: isDark
-              ? [
-                  Color.lerp(
-                      AppTheme.primaryIndigo, AppTheme.darkBackground, 0.2)!,
-                  AppTheme.darkBackground,
-                ]
-              : [
-                  AppTheme.parchment,
-                  AppTheme.parchment.withValues(alpha: 0.98),
-                ],
-        ),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
-        boxShadow: [
-          BoxShadow(
-            color: isDark
-                ? AppTheme.accentTeal.withValues(alpha: 0.4)
-                : AppTheme.accentTeal.withValues(alpha: 0.12),
-            blurRadius: 20,
-            offset: const Offset(0, -5),
-          ),
-        ],
+        color: surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        border: Border(top: BorderSide(color: border)),
+        boxShadow: List<BoxShadow>.from(AppTheme.cardShadow(isDark)),
       ),
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.only(
+        left: 20,
+        right: 20,
+        top: 12,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
       child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -96,346 +85,238 @@ class _VerseActionBottomSheetState extends State<VerseActionBottomSheet> {
           children: [
             Center(
               child: Container(
-                margin: const EdgeInsets.only(bottom: 16),
-                width: 50,
+                width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: isDark
-                      ? AppTheme.accentTeal.withValues(alpha: 0.27)
-                      : AppTheme.accentTeal.withValues(alpha: 0.2),
+                  color: border,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
             ),
+            const SizedBox(height: 16),
             Row(
               children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: isDark
-                          ? [AppTheme.accentTeal, AppTheme.primaryIndigo]
-                          : [AppTheme.primaryIndigo, AppTheme.accentTeal],
-                    ),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(
-                    Icons.menu_book_rounded,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     widget.reference,
-                    style: GoogleFonts.crimsonText(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color:
-                          isDark ? AppTheme.accentTeal : AppTheme.primaryIndigo,
-                      letterSpacing: 0.5,
+                    style: AppTheme.brandTitle(
+                      fontSize: 18,
+                      weight: FontWeight.w600,
+                      color: ink,
                     ),
                   ),
                 ),
-                IconButton(
-                  tooltip: 'Copy verse',
-                  icon: const Icon(Icons.copy_rounded),
-                  onPressed: () async {
-                    await Clipboard.setData(
-                      ClipboardData(
-                        text: '${widget.verse.text}\n— ${widget.reference}',
-                      ),
-                    );
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Verse copied')),
-                      );
-                    }
-                  },
-                ),
-                IconButton(
-                  icon: Icon(
-                    Icons.close_rounded,
-                    color:
-                        isDark ? AppTheme.accentTeal : AppTheme.primaryIndigo,
-                  ),
+                BpIconButton(
+                  icon: Icons.close_rounded,
+                  tooltip: 'Close',
                   onPressed: () => Navigator.pop(context),
                 ),
               ],
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
             Container(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
               decoration: BoxDecoration(
-                color: isDark
-                    ? AppTheme.primaryIndigo.withValues(alpha: 0.04)
-                    : AppTheme.accentTeal.withValues(alpha: 0.04),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: isDark
-                      ? AppTheme.accentTeal.withValues(alpha: 0.2)
-                      : AppTheme.accentTeal.withValues(alpha: 0.12),
-                ),
+                color: isDark ? AppTheme.surface2Dark : AppTheme.surface2Light,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppTheme.gold, width: 1.2),
               ),
               child: Text(
                 widget.verse.text,
-                style: GoogleFonts.crimsonText(
-                  fontSize: 17,
-                  height: 1.7,
-                  color: isDark ? AppTheme.parchment : AppTheme.textDark,
-                  letterSpacing: 0.3,
+                style: AppTheme.scripture(
+                  fontSize: 16,
+                  height: 1.75,
+                  style: FontStyle.italic,
+                  color: ink,
                 ),
               ),
             ),
-            const SizedBox(height: 24),
             if (linkedHymns.isNotEmpty) ...[
-              Text(
-                'Inspired hymns',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
+              const SizedBox(height: 20),
+              const BpGroupHeader('Inspired hymns'),
               for (final hymn in linkedHymns)
                 ListTile(
                   contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.music_note_rounded),
-                  title: Text(hymn.title),
-                  subtitle: Text(hymn.scripture ?? ''),
+                  leading: const Icon(Icons.music_note_rounded,
+                      color: AppTheme.teal),
+                  title: Text(
+                    hymn.title,
+                    style: AppTheme.ui(
+                        fontSize: 14, weight: FontWeight.w600, color: ink),
+                  ),
+                  subtitle: Text(
+                    hymn.scripture ?? '',
+                    style: AppTheme.ui(fontSize: 12, color: inkSoft),
+                  ),
                 ),
-              const SizedBox(height: 16),
             ],
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: isDark
-                          ? [AppTheme.accentTeal, AppTheme.primaryIndigo]
-                          : [AppTheme.primaryIndigo, AppTheme.accentTeal],
-                    ),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(
-                    Icons.palette_rounded,
-                    size: 18,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  'Highlight Color',
-                  style: GoogleFonts.crimsonText(
-                    fontSize: 17,
-                    fontWeight: FontWeight.bold,
-                    color:
-                        isDark ? AppTheme.accentTeal : AppTheme.primaryIndigo,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
+            const BpGroupHeader('Highlight'),
+            const SizedBox(height: 10),
             Wrap(
               spacing: 12,
               runSpacing: 12,
               children: [
                 for (final color in AppTheme.highlightColors)
-                  _buildHighlightButton(context, color, studyProvider, isDark),
-                if (isHighlighted)
-                  _buildRemoveHighlightButton(context, studyProvider, isDark),
+                  _HighlightSwatch(
+                    color: color,
+                    isSelected:
+                        studyProvider.getHighlightColor(widget.reference) ==
+                            color,
+                    onTap: () async {
+                      await studyProvider.addHighlight(
+                        widget.reference,
+                        widget.verse.text,
+                        color,
+                      );
+                      if (context.mounted) {
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Verse highlighted',
+                              style: AppTheme.ui(color: Colors.white),
+                            ),
+                            duration: const Duration(seconds: 1),
+                            backgroundColor: color,
+                          ),
+                        );
+                      }
+                    },
+                  ),
               ],
             ),
-            const SizedBox(height: 24),
-            Container(
-              decoration: BoxDecoration(
-                color: isDark
-                    ? AppTheme.primaryIndigo.withValues(alpha: 0.04)
-                    : AppTheme.accentTeal.withValues(alpha: 0.04),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: isDark
-                      ? AppTheme.accentTeal.withValues(alpha: 0.2)
-                      : AppTheme.accentTeal.withValues(alpha: 0.12),
-                ),
-              ),
-              child: TextField(
+            const SizedBox(height: 20),
+            _ActionRow(
+              icon: Icons.note_alt_outlined,
+              label: 'Add note',
+              color: AppTheme.teal,
+              onTap: () => setState(() => _showNoteField = !_showNoteField),
+            ),
+            if (_showNoteField) ...[
+              const SizedBox(height: 12),
+              TextField(
                 controller: _noteController,
                 maxLines: 3,
-                style: GoogleFonts.crimsonText(
-                  fontSize: 16,
-                  color: isDark ? AppTheme.parchment : AppTheme.textDark,
-                ),
+                style: AppTheme.scripture(fontSize: 15, color: ink),
                 decoration: InputDecoration(
-                  labelText: 'Add Note',
-                  labelStyle: GoogleFonts.crimsonText(
-                    color: isDark
-                        ? AppTheme.parchment.withValues(alpha: 0.8)
-                        : AppTheme.textDark.withValues(alpha: 0.7),
-                  ),
-                  hintText: 'Write your thoughts here...',
-                  hintStyle: GoogleFonts.crimsonText(
-                    color: isDark
-                        ? AppTheme.parchment.withValues(alpha: 0.4)
-                        : AppTheme.textDark.withValues(alpha: 0.4),
-                  ),
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.all(16),
+                  hintText: 'Write your thoughts here…',
+                  hintStyle: AppTheme.ui(fontSize: 13, color: inkSoft),
                   suffixIcon: IconButton(
-                    icon: Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: isDark
-                              ? [AppTheme.accentTeal, AppTheme.primaryIndigo]
-                              : [AppTheme.primaryIndigo, AppTheme.accentTeal],
-                        ),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(Icons.save_rounded,
-                          size: 18, color: Colors.white),
-                    ),
-                    onPressed: () async {
-                      if (_noteController.text.isNotEmpty) {
-                        await studyProvider.addNote(
-                          widget.reference,
-                          _noteController.text,
-                        );
-                        if (context.mounted) {
-                          Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                'Note saved',
-                                style: GoogleFonts.crimsonText(),
-                              ),
-                              backgroundColor: isDark
-                                  ? const Color(0xFFD4AF37)
-                                  : const Color(0xFFB8960F),
-                            ),
-                          );
-                        }
-                      }
-                    },
+                    icon: const Icon(Icons.check_rounded, color: AppTheme.gold),
+                    onPressed: () => _saveNote(context, studyProvider),
                   ),
                 ),
               ),
+            ],
+            const SizedBox(height: 8),
+            _ActionRow(
+              icon: isBookmarked
+                  ? Icons.bookmark_rounded
+                  : Icons.bookmark_border_rounded,
+              label: isBookmarked ? 'Bookmarked' : 'Bookmark',
+              color: AppTheme.gold,
+              onTap: () async {
+                if (isBookmarked) {
+                  await studyProvider.removeBookmark(widget.reference);
+                } else {
+                  await studyProvider.addBookmark(
+                    widget.reference,
+                    widget.verse.text,
+                  );
+                }
+                if (context.mounted) Navigator.pop(context);
+              },
             ),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () async {
-                      if (isBookmarked) {
-                        await studyProvider.removeBookmark(widget.reference);
-                      } else {
-                        await studyProvider.addBookmark(
-                          widget.reference,
-                          widget.verse.text,
-                        );
-                      }
-                      if (context.mounted) Navigator.pop(context);
-                    },
-                    icon: Icon(
-                      isBookmarked
-                          ? Icons.bookmark_rounded
-                          : Icons.bookmark_border_rounded,
-                      size: 20,
-                    ),
-                    label: Text(
-                      isBookmarked ? 'Bookmarked' : 'Bookmark',
-                      style:
-                          GoogleFonts.crimsonText(fontWeight: FontWeight.w600),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: isDark
-                          ? (isBookmarked
-                              ? const Color(0xFFD4AF37)
-                              : const Color(0x22D4AF37))
-                          : (isBookmarked
-                              ? const Color(0xFFB8960F)
-                              : const Color(0x11D4AF37)),
-                      foregroundColor: isBookmarked
-                          ? Colors.white
-                          : (isDark
-                              ? const Color(0xFFD4AF37)
-                              : const Color(0xFFB8960F)),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        side: isBookmarked
-                            ? BorderSide.none
-                            : BorderSide(
-                                color: isDark
-                                    ? const Color(0x44D4AF37)
-                                    : const Color(0x33D4AF37),
-                              ),
-                      ),
-                      elevation: 0,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () {
+            const SizedBox(height: 8),
+            _ActionRow(
+              icon: Icons.image_outlined,
+              label: 'Share as verse card',
+              color: AppTheme.gold,
+              onTap: capabilities.wallpaperExport
+                  ? () {
+                      Navigator.pop(context);
+                      Navigator.pushNamed(
+                        context,
+                        '/wallpaper',
+                        arguments: {
+                          'text': widget.verse.text,
+                          'reference': widget.reference,
+                        },
+                      );
+                    }
+                  : () {
                       Share.share(
                         '${widget.verse.text}\n— ${widget.reference}\n\nBiblePulse',
                       );
                     },
-                    icon: const Icon(Icons.share_rounded, size: 20),
-                    label: Text(
-                      'Share',
-                      style:
-                          GoogleFonts.crimsonText(fontWeight: FontWeight.w600),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: isDark
-                          ? const Color(0x22D4AF37)
-                          : const Color(0x11D4AF37),
-                      foregroundColor: isDark
-                          ? const Color(0xFFD4AF37)
-                          : const Color(0xFFB8960F),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        side: BorderSide(
-                          color: isDark
-                              ? const Color(0x44D4AF37)
-                              : const Color(0x33D4AF37),
-                        ),
-                      ),
-                      elevation: 0,
-                    ),
-                  ),
-                ),
-              ],
             ),
+            const SizedBox(height: 8),
+            _ActionRow(
+              icon: Icons.copy_rounded,
+              label: 'Copy',
+              color: inkSoft,
+              onTap: () async {
+                await Clipboard.setData(
+                  ClipboardData(
+                    text: '${widget.verse.text}\n— ${widget.reference}',
+                  ),
+                );
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Verse copied',
+                        style: AppTheme.ui(color: Colors.white),
+                      ),
+                      backgroundColor: AppTheme.teal,
+                    ),
+                  );
+                }
+              },
+            ),
+            if (isHighlighted) ...[
+              const SizedBox(height: 8),
+              _ActionRow(
+                icon: Icons.highlight_off_rounded,
+                label: 'Remove highlight',
+                color: AppTheme.vermilion,
+                labelColor: AppTheme.vermilion,
+                onTap: () async {
+                  await studyProvider.removeHighlight(widget.reference);
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Highlight removed',
+                          style: AppTheme.ui(color: Colors.white),
+                        ),
+                        backgroundColor: AppTheme.vermilion,
+                      ),
+                    );
+                  }
+                },
+              ),
+            ],
             const SizedBox(height: 12),
             Wrap(
-              spacing: 12,
-              runSpacing: 12,
+              spacing: 8,
+              runSpacing: 8,
               children: [
                 OutlinedButton.icon(
-                  onPressed: capabilities.wallpaperExport
-                      ? () {
-                          Navigator.pop(context);
-                          Navigator.pushNamed(
-                            context,
-                            '/wallpaper',
-                            arguments: {
-                              'text': widget.verse.text,
-                              'reference': widget.reference,
-                            },
-                          );
-                        }
-                      : null,
-                  icon: const Icon(Icons.wallpaper_rounded),
-                  label: const Text('Wallpaper'),
+                  onPressed: () {
+                    Share.share(
+                      '${widget.verse.text}\n— ${widget.reference}\n\nBiblePulse',
+                    );
+                  },
+                  icon: const Icon(Icons.share_rounded, size: 18),
+                  label: const Text('Share text'),
                 ),
                 OutlinedButton.icon(
                   onPressed: () => _showCrossReferences(context),
-                  icon: const Icon(Icons.account_tree_rounded),
+                  icon: const Icon(Icons.account_tree_rounded, size: 18),
                   label: const Text('Cross-references'),
                 ),
               ],
@@ -446,22 +327,58 @@ class _VerseActionBottomSheetState extends State<VerseActionBottomSheet> {
     );
   }
 
+  Future<void> _saveNote(
+    BuildContext context,
+    StudyProvider studyProvider,
+  ) async {
+    if (_noteController.text.isEmpty) return;
+    await studyProvider.addNote(widget.reference, _noteController.text);
+    if (context.mounted) {
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Note saved',
+            style: AppTheme.ui(color: Colors.white),
+          ),
+          backgroundColor: AppTheme.gold,
+        ),
+      );
+    }
+  }
+
   Future<void> _showCrossReferences(BuildContext context) async {
     final references =
         CrossReferenceService().getCrossReferences(widget.reference);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     await showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Cross-references · ${widget.reference}'),
+        title: Text(
+          'Cross-references · ${widget.reference}',
+          style: AppTheme.brandTitle(
+            fontSize: 17,
+            weight: FontWeight.w600,
+            color: isDark ? AppTheme.inkDark : AppTheme.ink,
+          ),
+        ),
         content: references.isEmpty
-            ? const Text('No verified cross-references are available.')
+            ? Text(
+                'No verified cross-references are available.',
+                style: AppTheme.ui(
+                  color: isDark ? AppTheme.inkSoftDark : AppTheme.inkSoft,
+                ),
+              )
             : Column(
                 mainAxisSize: MainAxisSize.min,
                 children: references
                     .map(
                       (reference) => ListTile(
                         contentPadding: EdgeInsets.zero,
-                        title: Text(reference.toReference),
+                        title: Text(
+                          reference.toReference,
+                          style: AppTheme.ui(weight: FontWeight.w600),
+                        ),
                         subtitle: Text(reference.description ?? ''),
                       ),
                     )
@@ -477,105 +394,113 @@ class _VerseActionBottomSheetState extends State<VerseActionBottomSheet> {
     );
   }
 
-  Widget _buildHighlightButton(
-    BuildContext context,
-    Color color,
-    StudyProvider studyProvider,
-    bool isDark,
-  ) {
-    final currentColor = studyProvider.getHighlightColor(widget.reference);
-    final isSelected = currentColor == color;
+  @override
+  void dispose() {
+    _noteController.dispose();
+    super.dispose();
+  }
+}
 
+class _HighlightSwatch extends StatelessWidget {
+  const _HighlightSwatch({
+    required this.color,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final Color color;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () async {
-        await studyProvider.addHighlight(
-          widget.reference,
-          widget.verse.text,
-          color,
-        );
-        if (context.mounted) {
-          Navigator.pop(context);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                '✨ Verse highlighted!',
-                style: GoogleFonts.crimsonText(color: Colors.white),
-              ),
-              duration: const Duration(seconds: 1),
-              backgroundColor: color,
-            ),
-          );
-        }
-      },
+      onTap: onTap,
       child: Container(
-        width: 50,
-        height: 50,
+        width: 44,
+        height: 44,
         decoration: BoxDecoration(
           color: color,
           shape: BoxShape.circle,
           border: Border.all(
-            color: isSelected
-                ? (isDark ? const Color(0xFFD4AF37) : const Color(0xFFB8960F))
-                : Colors.white.withValues(alpha: 0.3),
-            width: isSelected ? 3 : 2,
+            color: isSelected ? AppTheme.gold : borderFor(context),
+            width: isSelected ? 3 : 1.5,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: color.withValues(alpha: 0.5),
-              blurRadius: isSelected ? 12 : 6,
-              offset: const Offset(0, 3),
-            ),
-          ],
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: color.withValues(alpha: 0.45),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
         ),
         child: isSelected
-            ? const Icon(Icons.check_rounded, color: Colors.white, size: 26)
+            ? const Icon(Icons.check_rounded, color: Colors.white, size: 20)
             : null,
       ),
     );
   }
 
-  Widget _buildRemoveHighlightButton(
-    BuildContext context,
-    StudyProvider studyProvider,
-    bool isDark,
-  ) {
-    return GestureDetector(
-      onTap: () async {
-        await studyProvider.removeHighlight(widget.reference);
-        if (context.mounted) {
-          Navigator.pop(context);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Highlight removed',
-                style: GoogleFonts.crimsonText(),
-              ),
-              duration: const Duration(seconds: 1),
-              backgroundColor:
-                  isDark ? const Color(0xFFB8960F) : const Color(0xFFD4AF37),
-            ),
-          );
-        }
-      },
-      child: Container(
-        width: 50,
-        height: 50,
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0x22D4AF37) : const Color(0x11D4AF37),
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: Colors.red.withValues(alpha: 0.5),
-            width: 2,
-          ),
-        ),
-        child: const Icon(Icons.close_rounded, color: Colors.red, size: 26),
-      ),
-    );
+  Color borderFor(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return isDark ? AppTheme.borderDark : AppTheme.borderLight;
   }
+}
+
+class _ActionRow extends StatelessWidget {
+  const _ActionRow({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+    this.labelColor,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
+  final Color? labelColor;
+  final VoidCallback onTap;
 
   @override
-  void dispose() {
-    _noteController.dispose();
-    super.dispose();
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final ink = labelColor ?? (isDark ? AppTheme.inkDark : AppTheme.ink);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: color.withValues(alpha: 0.35)),
+                ),
+                child: Icon(icon, size: 20, color: color),
+              ),
+              const SizedBox(width: 14),
+              Text(
+                label,
+                style: AppTheme.ui(
+                  fontSize: 14,
+                  weight: FontWeight.w600,
+                  color: ink,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

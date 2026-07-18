@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
+import '../config/app_capabilities.dart';
 import '../l10n/app_localizations.dart';
 import '../providers/bible_provider.dart';
-import '../providers/navigation_provider.dart';
-import '../providers/theme_provider.dart';
 import '../providers/engagement_provider.dart';
+import '../providers/navigation_provider.dart';
 import '../providers/study_provider.dart';
+import '../providers/theme_provider.dart';
 import '../utils/app_theme.dart';
 import '../widgets/app_drawer.dart';
+import '../widgets/design/bp_widgets.dart';
+import '../widgets/manuscript_bits.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -20,113 +22,200 @@ class DashboardScreen extends StatelessWidget {
     final dailyVerse = bible.verseOfTheDay;
     final theme = context.watch<ThemeProvider>();
     final l10n = AppLocalizations.of(context);
+    final capabilities = context.watch<AppCapabilities>();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final ink = isDark ? AppTheme.inkDark : AppTheme.ink;
+    final faint = isDark ? AppTheme.inkFaintDark : AppTheme.inkFaint;
 
     return Scaffold(
       drawer: const AppDrawer(),
-      appBar: AppBar(
-        title: const Text('BiblePulse'),
-        leading: Builder(
-          builder: (context) => IconButton(
-            tooltip: 'Open menu',
-            onPressed: Scaffold.of(context).openDrawer,
-            icon: const Icon(Icons.menu_rounded),
-          ),
-        ),
-        actions: [
-          IconButton(
-            tooltip: 'Search Scripture',
-            onPressed: () => Navigator.pushNamed(context, '/search'),
-            icon: const Icon(Icons.search_rounded),
-          ),
-          IconButton(
-            tooltip: theme.isDarkMode ? 'Use light mode' : 'Use dark mode',
-            onPressed: theme.toggleTheme,
-            icon: Icon(
-              theme.isDarkMode
-                  ? Icons.light_mode_rounded
-                  : Icons.dark_mode_rounded,
-            ),
-          ),
-        ],
-      ),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1100),
-            child: ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                _GreetingCard(l10n: l10n),
-                const SizedBox(height: 16),
-                const _EngagementSummary(),
-                const SizedBox(height: 16),
+            constraints: const BoxConstraints(maxWidth: 720),
+            child: CustomScrollView(
+              slivers: [
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                    child: Builder(
+                      builder: (context) => Row(
+                        children: [
+                          BpIconButton(
+                            icon: Icons.menu_rounded,
+                            tooltip: 'Open menu',
+                            onPressed: () => Scaffold.of(context).openDrawer(),
+                          ),
+                          const Spacer(),
+                          BpIconButton(
+                            icon: Icons.search_rounded,
+                            tooltip: 'Search Scripture',
+                            onPressed: () =>
+                                context.read<NavigationProvider>().setIndex(2),
+                          ),
+                          const SizedBox(width: 8),
+                          BpIconButton(
+                            icon: theme.isDarkMode
+                                ? Icons.light_mode_rounded
+                                : Icons.dark_mode_rounded,
+                            tooltip: theme.isDarkMode
+                                ? 'Use light mode'
+                                : 'Use dark mode',
+                            onPressed: theme.toggleTheme,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                SliverToBoxAdapter(
+                  child: _GreetingHeader(l10n: l10n),
+                ),
                 if (dailyVerse != null)
-                  _VerseOfDayCard(
-                    verse: dailyVerse.text,
-                    reference: bible.getVerseReference(dailyVerse),
+                  SliverToBoxAdapter(
+                    child: _VerseOfDayCard(
+                      verse: dailyVerse.text,
+                      reference: '${bible.getVerseReference(dailyVerse)} · WEB',
+                    ),
                   )
                 else
-                  const _UnavailableCard(
-                    title: 'Daily verse unavailable',
-                    message: 'Verified Scripture content has not loaded.',
+                  const SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 20),
+                      child: BpCard(
+                        child:
+                            Text('Verified Scripture content has not loaded.'),
+                      ),
+                    ),
                   ),
-                const SizedBox(height: 24),
-                Text(l10n.quickActions,
-                    style: Theme.of(context).textTheme.titleLarge),
-                const SizedBox(height: 12),
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final columns = constraints.maxWidth >= 850
-                        ? 4
-                        : constraints.maxWidth >= 520
-                            ? 2
-                            : 1;
-                    return GridView.count(
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+                    child: GridView.count(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      crossAxisCount: columns,
+                      crossAxisCount: 2,
                       mainAxisSpacing: 12,
                       crossAxisSpacing: 12,
-                      childAspectRatio: columns == 1 ? 3.4 : 1.55,
+                      childAspectRatio: 1.35,
                       children: [
-                        _ActionCard(
-                          icon: Icons.menu_book_rounded,
-                          title: l10n.readBible,
-                          description: 'Continue reading Scripture',
+                        _QuickCard(
+                          icon: Icons.compare_arrows_rounded,
+                          title: 'Parallel read',
+                          subtitle: 'Amharic + English',
                           onTap: () =>
                               context.read<NavigationProvider>().setIndex(1),
                         ),
-                        _ActionCard(
-                          icon: Icons.bookmarks_rounded,
-                          title: l10n.myStudy,
-                          description: 'Notes, highlights and bookmarks',
+                        _QuickCard(
+                          icon: Icons.headphones_rounded,
+                          title: 'Listen',
+                          subtitle: capabilities.audio
+                              ? 'Chapter audio'
+                              : 'Audio gated',
                           onTap: () =>
-                              context.read<NavigationProvider>().setIndex(2),
+                              context.read<NavigationProvider>().setIndex(1),
                         ),
-                        _ActionCard(
-                          icon: Icons.wallpaper_rounded,
-                          title: l10n.createWallpaper,
-                          description: 'Create a verse image',
-                          onTap: () =>
-                              Navigator.pushNamed(context, '/wallpaper'),
+                        _QuickCard(
+                          icon: Icons.auto_stories_rounded,
+                          title: 'Reading plans',
+                          subtitle: capabilities.readingPlans
+                              ? 'Continue a plan'
+                              : 'Coming with license',
+                          onTap: capabilities.readingPlans
+                              ? () => Navigator.pushNamed(
+                                    context,
+                                    '/reading_plans',
+                                  )
+                              : null,
                         ),
-                        _ActionCard(
-                          icon: Icons.volunteer_activism_rounded,
-                          title: 'Prayer journal',
-                          description: 'Private prayers linked to Scripture',
-                          onTap: () =>
-                              Navigator.pushNamed(context, '/prayer_journal'),
-                        ),
-                        _ActionCard(
-                          icon: Icons.tune_rounded,
-                          title: l10n.settings,
-                          description: 'Reading and app preferences',
-                          onTap: () =>
-                              context.read<NavigationProvider>().setIndex(3),
+                        _QuickCard(
+                          icon: Icons.music_note_rounded,
+                          title: 'Hymns',
+                          subtitle: capabilities.hymns
+                              ? 'Open library'
+                              : 'Coming with license',
+                          onTap: capabilities.hymns
+                              ? () => Navigator.pushNamed(context, '/hymns')
+                              : null,
                         ),
                       ],
-                    );
-                  },
+                    ),
+                  ),
+                ),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 22),
+                    child: BpSectionLabel(
+                      title: 'Continue reading',
+                      action: 'See all',
+                      onAction: () =>
+                          context.read<NavigationProvider>().setIndex(1),
+                    ),
+                  ),
+                ),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
+                    child: BpCard(
+                      onTap: () =>
+                          context.read<NavigationProvider>().setIndex(1),
+                      padding: const EdgeInsets.all(14),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 56,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(6),
+                              gradient: const LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [AppTheme.goldSoft, AppTheme.vermilion],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  bible.selectedBook?.name ?? 'Open Scripture',
+                                  style: AppTheme.ui(
+                                    fontSize: 13.5,
+                                    weight: FontWeight.w600,
+                                    color: ink,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  bible.selectedBook == null
+                                      ? 'Start reading'
+                                      : 'Chapter ${bible.selectedChapter}',
+                                  style: AppTheme.ui(
+                                    fontSize: 11,
+                                    color: faint,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(2),
+                                  child: LinearProgressIndicator(
+                                    value: 0.63,
+                                    minHeight: 4,
+                                    backgroundColor: isDark
+                                        ? AppTheme.borderDark
+                                        : AppTheme.borderLight,
+                                    color: AppTheme.teal,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -137,58 +226,8 @@ class DashboardScreen extends StatelessWidget {
   }
 }
 
-class _EngagementSummary extends StatelessWidget {
-  const _EngagementSummary();
-
-  @override
-  Widget build(BuildContext context) {
-    final streak = context.watch<EngagementProvider>().streakWithGrace();
-    final memories = context.watch<StudyProvider>().onThisDay();
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(
-              Icons.local_fire_department_rounded,
-              color: Theme.of(context).colorScheme.tertiary,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '$streak-day reading streak',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const Text(
-                      'Includes one grace day in each seven-day window.'),
-                  if (memories.isNotEmpty) ...[
-                    const SizedBox(height: 12),
-                    Text(
-                      'On this day · ${memories.first.reference}',
-                      style: Theme.of(context).textTheme.labelLarge,
-                    ),
-                    Text(
-                      memories.first.text,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _GreetingCard extends StatelessWidget {
-  const _GreetingCard({required this.l10n});
+class _GreetingHeader extends StatelessWidget {
+  const _GreetingHeader({required this.l10n});
 
   final AppLocalizations l10n;
 
@@ -200,23 +239,56 @@ class _GreetingCard extends StatelessWidget {
         : hour < 17
             ? l10n.goodAfternoon
             : l10n.goodEvening;
+    final streak = context.watch<EngagementProvider>().streakWithGrace();
+    final memories = context.watch<StudyProvider>().onThisDay();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final ink = isDark ? AppTheme.inkDark : AppTheme.ink;
+    final faint = isDark ? AppTheme.inkFaintDark : AppTheme.inkFaint;
+    final soft = isDark ? AppTheme.inkSoftDark : AppTheme.inkSoft;
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(greeting, style: Theme.of(context).textTheme.headlineSmall),
-            const SizedBox(height: 6),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            greeting.toUpperCase(),
+            style: AppTheme.ui(
+              fontSize: 11,
+              weight: FontWeight.w600,
+              letterSpacing: 1.5,
+              color: faint,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Welcome',
+            style: AppTheme.brandTitle(fontSize: 24, color: ink),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              const Text('●',
+                  style: TextStyle(color: AppTheme.vermilion, fontSize: 13)),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  '$streak-day streak · grace day available',
+                  style: AppTheme.ui(
+                      fontSize: 12, weight: FontWeight.w500, color: soft),
+                ),
+              ),
+            ],
+          ),
+          if (memories.isNotEmpty) ...[
+            const SizedBox(height: 8),
             Text(
-              l10n.welcomeBack,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+              'On this day · ${memories.first.reference}',
+              style: AppTheme.ui(
+                  fontSize: 11, weight: FontWeight.w600, color: AppTheme.gold),
             ),
           ],
-        ),
+        ],
       ),
     );
   }
@@ -230,125 +302,124 @@ class _VerseOfDayCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final gold = isDark ? AppTheme.darkAccentGold : AppTheme.accentGold;
+    final t = context.colors;
+    final drop = verse.trim().isEmpty ? 'A' : verse.trim().characters.first;
+    final rest = verse.trim().isEmpty
+        ? ''
+        : verse.trim().substring(drop.length).trimLeft();
 
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          BpCard(
+            padding: const EdgeInsets.fromLTRB(20, 28, 20, 20),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.auto_awesome_rounded, color: gold),
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: DropCap(drop.toUpperCase()),
+                ),
                 const SizedBox(width: 10),
-                Text(
-                  'Verse of the day',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: gold,
-                        fontWeight: FontWeight.w700,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        rest,
+                        style: AppText.scripture(context, size: 15.5),
                       ),
+                      const SizedBox(height: 10),
+                      Text(
+                        reference.toUpperCase(),
+                        style: AppText.ui(
+                          context,
+                          size: 11.5,
+                          w: FontWeight.w600,
+                          color: t.inkSoft,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
-            const SizedBox(height: 18),
-            Text(
-              verse,
-              style: GoogleFonts.merriweather(fontSize: 18, height: 1.6),
+          ),
+          Positioned(
+            top: -10,
+            left: 18,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppTheme.gold,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                'VERSE OF THE DAY',
+                style: AppTheme.ui(
+                  fontSize: 10,
+                  weight: FontWeight.w700,
+                  letterSpacing: 0.8,
+                  color: AppTheme.onGold,
+                ),
+              ),
             ),
-            const SizedBox(height: 14),
-            Text(
-              reference,
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: Theme.of(context).colorScheme.secondary,
-                  ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _ActionCard extends StatelessWidget {
-  const _ActionCard({
+class _QuickCard extends StatelessWidget {
+  const _QuickCard({
     required this.icon,
     required this.title,
-    required this.description,
-    required this.onTap,
+    required this.subtitle,
+    this.onTap,
   });
 
   final IconData icon;
   final String title;
-  final String description;
-  final VoidCallback onTap;
+  final String subtitle;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .secondary
-                      .withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  icon,
-                  color: Theme.of(context).colorScheme.secondary,
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title, style: Theme.of(context).textTheme.titleMedium),
-                    const SizedBox(height: 4),
-                    Text(
-                      description,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ],
-                ),
-              ),
-            ],
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final ink = isDark ? AppTheme.inkDark : AppTheme.ink;
+    final faint = isDark ? AppTheme.inkFaintDark : AppTheme.inkFaint;
+    final surface2 = isDark ? AppTheme.surface2Dark : AppTheme.surface2Light;
+
+    return BpCard(
+      onTap: onTap,
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: surface2,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, size: 18, color: AppTheme.teal),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _UnavailableCard extends StatelessWidget {
-  const _UnavailableCard({required this.title, required this.message});
-
-  final String title;
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: ListTile(
-        minTileHeight: 72,
-        leading: const Icon(Icons.info_outline_rounded),
-        title: Text(title),
-        subtitle: Text(message),
+          const Spacer(),
+          Text(
+            title,
+            style:
+                AppTheme.ui(fontSize: 13, weight: FontWeight.w600, color: ink),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            subtitle,
+            style: AppTheme.ui(fontSize: 11, color: faint),
+          ),
+        ],
       ),
     );
   }

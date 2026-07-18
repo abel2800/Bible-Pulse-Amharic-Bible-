@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../services/auth_service.dart';
+import '../../utils/app_theme.dart';
+import '../../widgets/design/bp_widgets.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -48,74 +50,208 @@ class _AuthScreenState extends State<AuthScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.colors;
+
     return Scaffold(
-      appBar: AppBar(title: Text(_register ? 'Create account' : 'Sign in')),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 440),
-          child: ListView(
-            padding: const EdgeInsets.all(24),
-            shrinkWrap: true,
-            children: [
-              TextField(
-                controller: _email,
-                keyboardType: TextInputType.emailAddress,
-                autofillHints: const [AutofillHints.email],
-                decoration: const InputDecoration(labelText: 'Email'),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _password,
-                obscureText: true,
-                autofillHints: _register
-                    ? const [AutofillHints.newPassword]
-                    : const [AutofillHints.password],
-                decoration: const InputDecoration(labelText: 'Password'),
-                onSubmitted: (_) {
-                  if (!_busy) _submit();
-                },
-              ),
-              if (_error != null) ...[
+      backgroundColor: t.appBg,
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 440),
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(26, 24, 26, 26),
+              shrinkWrap: true,
+              children: [
+                Row(
+                  children: [
+                    BpIconButton(
+                      icon: Icons.arrow_back_ios_new_rounded,
+                      tooltip: 'Back',
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 16),
+                Center(
+                  child: Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Color(0xFFE8C766),
+                          Color(0xFFC08A28),
+                          Color(0xFFA83232),
+                        ],
+                      ),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      'B',
+                      style: AppTheme.brandTitle(
+                        fontSize: 26,
+                        weight: FontWeight.w700,
+                        color: AppBrand.onGold,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
                 Text(
-                  _error!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                  _register ? 'Create account' : 'Welcome back',
+                  textAlign: TextAlign.center,
+                  style: AppText.display(context, size: 26),
                 ),
-              ],
-              const SizedBox(height: 24),
-              FilledButton(
-                onPressed: _busy ? null : _submit,
-                child: Text(_register ? 'Create account' : 'Sign in'),
-              ),
-              TextButton(
-                onPressed:
-                    _busy ? null : () => setState(() => _register = !_register),
-                child: Text(
+                const SizedBox(height: 8),
+                Text(
                   _register
-                      ? 'Already have an account? Sign in'
-                      : 'Create an account',
+                      ? 'Sign up to sync your study across devices'
+                      : 'Sign in to sync highlights, notes, and bookmarks',
+                  textAlign: TextAlign.center,
+                  style: AppText.ui(context, size: 13.5, color: t.inkSoft),
                 ),
-              ),
-              if (!_register)
-                TextButton(
+                const SizedBox(height: 28),
+                BpCard(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                  child: TextField(
+                    controller: _email,
+                    keyboardType: TextInputType.emailAddress,
+                    autofillHints: const [AutofillHints.email],
+                    style: AppText.ui(context, size: 14),
+                    decoration: InputDecoration(
+                      labelText: 'Email',
+                      labelStyle: AppText.ui(
+                        context,
+                        size: 12,
+                        w: FontWeight.w600,
+                        color: t.inkSoft,
+                      ),
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                BpCard(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                  child: TextField(
+                    controller: _password,
+                    obscureText: true,
+                    autofillHints: _register
+                        ? const [AutofillHints.newPassword]
+                        : const [AutofillHints.password],
+                    style: AppText.ui(context, size: 14),
+                    decoration: InputDecoration(
+                      labelText: 'Password',
+                      labelStyle: AppText.ui(
+                        context,
+                        size: 12,
+                        w: FontWeight.w600,
+                        color: t.inkSoft,
+                      ),
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                    ),
+                    onSubmitted: (_) {
+                      if (!_busy) _submit();
+                    },
+                  ),
+                ),
+                if (_error != null) ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    _error!,
+                    textAlign: TextAlign.center,
+                    style: AppText.ui(
+                      context,
+                      size: 13,
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 24),
+                BpPrimaryButton(
+                  label: _register ? 'Create account' : 'Sign in',
+                  onPressed: _busy ? null : _submit,
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton(
                   onPressed: _busy
                       ? null
-                      : () async {
-                          final auth = context.read<AuthService>();
-                          final messenger = ScaffoldMessenger.of(context);
-                          await auth.sendPasswordReset(_email.text);
-                          if (mounted) {
-                            messenger.showSnackBar(
-                              const SnackBar(
-                                content:
-                                    Text('Password reset email requested.'),
-                              ),
-                            );
+                      : () {
+                          if (_register) {
+                            setState(() => _register = false);
+                          } else {
+                            Navigator.pop(context);
                           }
                         },
-                  child: const Text('Forgot password?'),
+                  child: Text(
+                    _register ? 'Sign in instead' : 'Continue without account',
+                  ),
                 ),
-            ],
+                if (!_register) ...[
+                  const SizedBox(height: 8),
+                  Center(
+                    child: TextButton(
+                      onPressed: _busy
+                          ? null
+                          : () async {
+                              final auth = context.read<AuthService>();
+                              final messenger = ScaffoldMessenger.of(context);
+                              await auth.sendPasswordReset(_email.text);
+                              if (mounted) {
+                                messenger.showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Password reset email requested.',
+                                    ),
+                                  ),
+                                );
+                              }
+                            },
+                      child: Text(
+                        'Forgot password?',
+                        style: AppText.ui(context, size: 13, color: t.inkFaint),
+                      ),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 20),
+                Center(
+                  child: GestureDetector(
+                    onTap: _busy
+                        ? null
+                        : () => setState(() => _register = !_register),
+                    child: RichText(
+                      text: TextSpan(
+                        style: AppText.ui(context, size: 13, color: t.inkSoft),
+                        children: [
+                          TextSpan(
+                            text: _register
+                                ? 'Already have an account? '
+                                : "Don't have an account? ",
+                          ),
+                          TextSpan(
+                            text: _register ? 'Sign in' : 'Create account',
+                            style: AppText.ui(
+                              context,
+                              size: 13,
+                              w: FontWeight.w600,
+                              color: AppBrand.gold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

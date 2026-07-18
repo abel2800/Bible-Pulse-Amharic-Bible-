@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:google_fonts/google_fonts.dart';
+
 import '../providers/study_provider.dart';
-import '../providers/theme_provider.dart';
+import '../utils/app_theme.dart';
+import '../widgets/design/bp_widgets.dart';
 import '../widgets/highlight_list_item.dart';
 import '../widgets/note_list_item.dart';
 import '../widgets/bookmark_list_item.dart';
@@ -33,194 +34,149 @@ class _StudyScreenState extends State<StudyScreen>
   @override
   Widget build(BuildContext context) {
     final studyProvider = Provider.of<StudyProvider>(context);
-    final themeProvider = Provider.of<ThemeProvider>(context);
-    final isDark = themeProvider.isDarkMode;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final ink = isDark ? AppTheme.inkDark : AppTheme.ink;
+    final faint = isDark ? AppTheme.inkFaintDark : AppTheme.inkFaint;
+    final surface2 = isDark ? AppTheme.surface2Dark : AppTheme.surface2Light;
+    final border = isDark ? AppTheme.borderDark : AppTheme.borderLight;
 
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: isDark
-                ? [
-                    const Color(0xFF1A1611),
-                    const Color(0xFF2A2419),
-                  ]
-                : [
-                    const Color(0xFFFFFFFD),
-                    const Color(0xFFFAF8F3),
-                  ],
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: isDark
-                        ? [const Color(0x22D4AF37), const Color(0x00D4AF37)]
-                        : [const Color(0x11D4AF37), const Color(0x00D4AF37)],
-                  ),
-                  borderRadius: const BorderRadius.only(
-                    bottomLeft: Radius.circular(30),
-                    bottomRight: Radius.circular(30),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    IconButton(
-                      icon: Icon(
-                        Icons.arrow_back_ios_rounded,
-                        color: isDark
-                            ? const Color(0xFFD4AF37)
-                            : const Color(0xFFB8960F),
-                      ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+              child: Row(
+                children: [
+                  if (Navigator.of(context).canPop()) ...[
+                    BpIconButton(
+                      icon: Icons.arrow_back_ios_new_rounded,
+                      tooltip: 'Back',
                       onPressed: () => Navigator.pop(context),
                     ),
                     const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: isDark
-                              ? [
-                                  const Color(0xFFD4AF37),
-                                  const Color(0xFFB8960F)
-                                ]
-                              : [
-                                  const Color(0xFFB8960F),
-                                  const Color(0xFFD4AF37)
-                                ],
-                        ),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(Icons.book_rounded,
-                          color: Colors.white, size: 24),
-                    ),
-                    const SizedBox(width: 16),
-                    Text(
-                      'My Study',
-                      style: GoogleFonts.crimsonText(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: isDark
-                            ? const Color(0xFFD4AF37)
-                            : const Color(0xFFB8960F),
-                        letterSpacing: 0.5,
-                      ),
-                    ),
                   ],
-                ),
+                  Text(
+                    'Study',
+                    style: AppTheme.brandTitle(fontSize: 22, color: ink),
+                  ),
+                ],
               ),
-              Container(
-                margin:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+              child: Container(
+                padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
-                  color: isDark
-                      ? const Color(0x22D4AF37)
-                      : const Color(0x11D4AF37),
-                  borderRadius: BorderRadius.circular(16),
+                  color: surface2,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: border),
                 ),
                 child: TabBar(
                   controller: _tabController,
                   indicator: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: isDark
-                          ? [const Color(0xFFD4AF37), const Color(0xFFB8960F)]
-                          : [const Color(0xFFB8960F), const Color(0xFFD4AF37)],
-                    ),
-                    borderRadius: BorderRadius.circular(16),
+                    color: AppTheme.gold,
+                    borderRadius: BorderRadius.circular(10),
                   ),
                   indicatorSize: TabBarIndicatorSize.tab,
                   dividerColor: Colors.transparent,
-                  labelColor: Colors.white,
-                  unselectedLabelColor: isDark
-                      ? const Color(0xFFC4B5A0)
-                      : const Color(0xFF6B5D4F),
-                  labelStyle: GoogleFonts.crimsonText(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
+                  labelColor: AppTheme.onGold,
+                  unselectedLabelColor: faint,
+                  labelStyle: AppTheme.ui(
+                    fontSize: 12,
+                    weight: FontWeight.w600,
+                  ),
+                  unselectedLabelStyle: AppTheme.ui(
+                    fontSize: 12,
+                    weight: FontWeight.w500,
                   ),
                   tabs: const [
                     Tab(
-                      icon: Icon(Icons.highlight_rounded, size: 20),
+                      height: 40,
+                      icon: Icon(Icons.highlight_rounded, size: 16),
                       text: 'Highlights',
                     ),
                     Tab(
-                      icon: Icon(Icons.note_rounded, size: 20),
+                      height: 40,
+                      icon: Icon(Icons.note_rounded, size: 16),
                       text: 'Notes',
                     ),
                     Tab(
-                      icon: Icon(Icons.bookmark_rounded, size: 20),
+                      height: 40,
+                      icon: Icon(Icons.bookmark_rounded, size: 16),
                       text: 'Bookmarks',
                     ),
                   ],
                 ),
               ),
-              Expanded(
-                child: TabBarView(
-                  controller: _tabController,
-                  children: [
-                    studyProvider.highlights.isEmpty
-                        ? _buildEmptyState(
-                            icon: Icons.highlight_rounded,
-                            message: 'No highlights yet',
-                            description:
-                                'Long press any verse to add a highlight',
-                            isDark: isDark,
-                          )
-                        : ListView.builder(
-                            padding: const EdgeInsets.all(16),
-                            itemCount: studyProvider.highlights.length,
-                            itemBuilder: (context, index) {
-                              return HighlightListItem(
+            ),
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  studyProvider.highlights.isEmpty
+                      ? _buildEmptyState(
+                          icon: Icons.highlight_rounded,
+                          message: 'No highlights yet',
+                          description:
+                              'Long press any verse to add a highlight',
+                          isDark: isDark,
+                        )
+                      : ListView.builder(
+                          padding: const EdgeInsets.all(20),
+                          itemCount: studyProvider.highlights.length,
+                          itemBuilder: (context, index) {
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 10),
+                              child: HighlightListItem(
                                 highlight: studyProvider.highlights[index],
-                              );
-                            },
-                          ),
-                    studyProvider.notes.isEmpty
-                        ? _buildEmptyState(
-                            icon: Icons.note_rounded,
-                            message: 'No notes yet',
-                            description:
-                                'Add notes to verses for personal study',
-                            isDark: isDark,
-                          )
-                        : ListView.builder(
-                            padding: const EdgeInsets.all(16),
-                            itemCount: studyProvider.notes.length,
-                            itemBuilder: (context, index) {
-                              return NoteListItem(
+                              ),
+                            );
+                          },
+                        ),
+                  studyProvider.notes.isEmpty
+                      ? _buildEmptyState(
+                          icon: Icons.note_rounded,
+                          message: 'No notes yet',
+                          description: 'Add notes to verses for personal study',
+                          isDark: isDark,
+                        )
+                      : ListView.builder(
+                          padding: const EdgeInsets.all(20),
+                          itemCount: studyProvider.notes.length,
+                          itemBuilder: (context, index) {
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 10),
+                              child: NoteListItem(
                                 note: studyProvider.notes[index],
-                              );
-                            },
-                          ),
-                    studyProvider.bookmarks.isEmpty
-                        ? _buildEmptyState(
-                            icon: Icons.bookmark_rounded,
-                            message: 'No bookmarks yet',
-                            description:
-                                'Bookmark verses to easily find them later',
-                            isDark: isDark,
-                          )
-                        : ListView.builder(
-                            padding: const EdgeInsets.all(16),
-                            itemCount: studyProvider.bookmarks.length,
-                            itemBuilder: (context, index) {
-                              return BookmarkListItem(
+                              ),
+                            );
+                          },
+                        ),
+                  studyProvider.bookmarks.isEmpty
+                      ? _buildEmptyState(
+                          icon: Icons.bookmark_rounded,
+                          message: 'No bookmarks yet',
+                          description:
+                              'Bookmark verses to easily find them later',
+                          isDark: isDark,
+                        )
+                      : ListView.builder(
+                          padding: const EdgeInsets.all(20),
+                          itemCount: studyProvider.bookmarks.length,
+                          itemBuilder: (context, index) {
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 10),
+                              child: BookmarkListItem(
                                 bookmark: studyProvider.bookmarks[index],
-                              );
-                            },
-                          ),
-                  ],
-                ),
+                              ),
+                            );
+                          },
+                        ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -232,6 +188,11 @@ class _StudyScreenState extends State<StudyScreen>
     required String description,
     required bool isDark,
   }) {
+    final ink = isDark ? AppTheme.inkDark : AppTheme.ink;
+    final soft = isDark ? AppTheme.inkSoftDark : AppTheme.inkSoft;
+    final border = isDark ? AppTheme.borderDark : AppTheme.borderLight;
+    final surface2 = isDark ? AppTheme.surface2Dark : AppTheme.surface2Light;
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(40),
@@ -239,50 +200,26 @@ class _StudyScreenState extends State<StudyScreen>
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: const EdgeInsets.all(32),
+              width: 88,
+              height: 88,
               decoration: BoxDecoration(
+                color: surface2,
                 shape: BoxShape.circle,
-                gradient: LinearGradient(
-                  colors: isDark
-                      ? [const Color(0x22D4AF37), const Color(0x11D4AF37)]
-                      : [const Color(0x11D4AF37), const Color(0x08D4AF37)],
-                ),
-                border: Border.all(
-                  color: isDark
-                      ? const Color(0x44D4AF37)
-                      : const Color(0x33D4AF37),
-                  width: 2,
-                ),
+                border: Border.all(color: border, width: 1.5),
               ),
-              child: Icon(
-                icon,
-                size: 72,
-                color:
-                    isDark ? const Color(0x88D4AF37) : const Color(0x88B8960F),
-              ),
+              child: Icon(icon, size: 36, color: AppTheme.gold),
             ),
-            const SizedBox(height: 28),
+            const SizedBox(height: 24),
             Text(
               message,
-              style: GoogleFonts.crimsonText(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color:
-                    isDark ? const Color(0xFFD4AF37) : const Color(0xFFB8960F),
-                letterSpacing: 0.5,
-              ),
+              style: AppTheme.brandTitle(fontSize: 20, color: ink),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             Text(
               description,
               textAlign: TextAlign.center,
-              style: GoogleFonts.crimsonText(
-                fontSize: 16,
-                height: 1.5,
-                color:
-                    isDark ? const Color(0xFFC4B5A0) : const Color(0xFF6B5D4F),
-                letterSpacing: 0.3,
-              ),
+              style:
+                  AppTheme.scripture(fontSize: 15, height: 1.55, color: soft),
             ),
           ],
         ),

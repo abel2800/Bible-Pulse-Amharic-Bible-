@@ -5,6 +5,8 @@ import '../providers/bible_provider.dart';
 import '../providers/color_theme_provider.dart';
 import '../providers/font_settings_provider.dart';
 import '../providers/theme_provider.dart';
+import '../utils/app_theme.dart';
+import '../widgets/design/bp_widgets.dart';
 import 'splash_screen.dart';
 
 enum BootstrapStatus { loading, ready, failed }
@@ -64,39 +66,86 @@ class _BootstrapScreenState extends State<BootstrapScreen> {
       return const SplashScreen();
     }
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final appBg = isDark ? AppTheme.appBgDark : AppTheme.appBgLight;
+    final surface2 = isDark ? AppTheme.surface2Dark : AppTheme.surface2Light;
+    final ink = isDark ? AppTheme.inkDark : AppTheme.ink;
+    final soft = isDark ? AppTheme.inkSoftDark : AppTheme.inkSoft;
+
     return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 420),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.sync_problem_rounded,
-                    size: 64,
-                    color: Theme.of(context).colorScheme.error,
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    'BiblePulse could not finish starting.',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.headlineSmall,
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Your local data is safe. Check the app resources and try again.\n\n$_error',
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 24),
-                  FilledButton.icon(
-                    onPressed: _initialize,
-                    icon: const Icon(Icons.refresh_rounded),
-                    label: const Text('Try again'),
-                  ),
-                ],
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: RadialGradient(
+            center: const Alignment(0, -0.7),
+            radius: 1.1,
+            colors: [surface2, appBg],
+            stops: const [0.0, 0.7],
+          ),
+        ),
+        child: SafeArea(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 88,
+                      height: 88,
+                      decoration: BoxDecoration(
+                        color: surface2,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: isDark
+                              ? AppTheme.borderDark
+                              : AppTheme.borderLight,
+                          width: 1.5,
+                        ),
+                      ),
+                      child: const Icon(
+                        Icons.sync_problem_rounded,
+                        size: 40,
+                        color: AppTheme.vermilion,
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+                    Text(
+                      'BiblePulse could not finish starting.',
+                      textAlign: TextAlign.center,
+                      style: AppTheme.brandTitle(fontSize: 22, color: ink),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Your local data is safe. Check the app resources and try again.',
+                      textAlign: TextAlign.center,
+                      style: AppTheme.scripture(
+                        fontSize: 15,
+                        height: 1.55,
+                        color: soft,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      '$_error',
+                      textAlign: TextAlign.center,
+                      style: AppTheme.ui(
+                        fontSize: 12,
+                        color:
+                            isDark ? AppTheme.inkFaintDark : AppTheme.inkFaint,
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+                    SizedBox(
+                      width: double.infinity,
+                      child: BpPrimaryButton(
+                        label: 'Try again',
+                        onPressed: _initialize,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

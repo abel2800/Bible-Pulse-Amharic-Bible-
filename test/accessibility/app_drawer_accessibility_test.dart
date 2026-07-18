@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 
 import 'package:bible_pulse/config/app_capabilities.dart';
+import 'package:bible_pulse/utils/app_theme.dart';
 import 'package:bible_pulse/widgets/app_drawer.dart';
 
 void main() {
@@ -22,8 +23,9 @@ void main() {
           readingPlans: false,
           hymns: false,
         ),
-        child: const MaterialApp(
-          home: Scaffold(body: AppDrawer()),
+        child: MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: const Scaffold(body: AppDrawer()),
         ),
       ),
     );

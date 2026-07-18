@@ -130,35 +130,38 @@ Minimum iOS deployment target: **15.0** (required by current Firebase Flutter pl
 
 ## Design system
 
-One brand, one palette, one shell — light and dark modes designed together, not inverted defaults.
+Illuminated-manuscript language: warm parchment, gold rubrication, vermilion accents, and serif Scripture. Light and dark modes are designed together.
 
-### Brand tokens
+### Brand accents
 
 | Token | Value | Use |
 |---|---|---|
-| Primary indigo | `#0B2545` | App bars, primary actions |
-| Accent teal | `#2EC4B6` | Interactive accents, progress |
-| Accent gold | `#D4AF37` / `#E8C766` (dark) | Highlight / devotion moments only |
+| Gold | `#C08A28` | Primary actions, active nav, verse numbers |
+| Soft gold | `#E8C766` | Gradients and dark-mode gold |
+| Vermilion | `#A83232` | Streaks, destructive actions |
+| Teal | `#1E7F72` | Secondary accents, progress |
 
 ### Surfaces
 
 | | Light | Dark |
 |---|---|---|
-| Background | `#F7F3EA` | `#0A1420` |
-| Surface | `#FFFFFF` | `#111E2E` |
-| Elevated | `#FDFBF6` | `#16283C` |
-| Border | `#E7E0D2` | `#22374C` |
-| Text primary | `#1F2D3D` | `#F2EFE6` |
-| Text secondary | `#5B6B7C` | `#9FB0C0` |
+| App background | `#F6F0E1` | `#10182A` |
+| Surface | `#FFFDF8` | `#161F33` |
+| Elevated | `#FBF4E4` | `#1B2540` |
+| Border | `#DED0AC` | `#2A3654` |
+| Ink | `#201A10` | `#F1E9D6` |
+| Ink soft | `#6B5D42` | `#B7AD90` |
+| Ink faint | `#9C8D6C` | `#6E7793` |
 
 ### Typography and shape
 
-- **UI:** Inter  
-- **Scripture / headings:** Merriweather  
-- **Amharic UI:** Noto Ethiopic fallbacks when the locale is Amharic  
-- Card radius: 14 · Control radius: 12 · Minimum touch target: 48×48
+- **Brand / titles:** Fraunces  
+- **Scripture:** Source Serif 4  
+- **UI chrome:** Inter  
+- **Amharic:** Noto Serif Ethiopic  
+- Card radius: 16 · Controls: 10–12 · Icon buttons: 34×34 · Minimum touch target: 48×48
 
-Reader presets stay independent of app light/dark mode so you can read Sepia while the rest of the UI is dark.
+Reader presets (Light, Sepia, Dark, True Black, Blue Night, Forest) stay independent of app light/dark mode.
 
 ---
 
