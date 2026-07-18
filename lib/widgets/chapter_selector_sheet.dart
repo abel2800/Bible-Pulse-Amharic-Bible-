@@ -73,14 +73,10 @@ class _ChapterSelectorSheet extends StatelessWidget {
                   child: Container(
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: selected
-                          ? const Color(0xFFC08A28)
-                          : t.surface2,
+                      color: selected ? const Color(0xFFC08A28) : t.surface2,
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
-                        color: selected
-                            ? const Color(0xFFC08A28)
-                            : t.border,
+                        color: selected ? const Color(0xFFC08A28) : t.border,
                       ),
                     ),
                     child: Text(
@@ -89,9 +85,7 @@ class _ChapterSelectorSheet extends StatelessWidget {
                         context,
                         size: 13.5,
                         w: FontWeight.w700,
-                        color: selected
-                            ? const Color(0xFF241804)
-                            : t.ink,
+                        color: selected ? const Color(0xFF241804) : t.ink,
                       ),
                     ),
                   ),

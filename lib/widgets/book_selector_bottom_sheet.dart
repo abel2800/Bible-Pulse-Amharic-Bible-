@@ -53,14 +53,10 @@ class _BookSelectorBottomSheetState extends State<BookSelectorBottomSheet>
     bool matches(BibleBook b) =>
         b.name.toLowerCase().contains(_query.toLowerCase());
 
-    final ot = bible.books
-        .where((b) => b.testament == 'OT')
-        .where(matches)
-        .toList();
-    final nt = bible.books
-        .where((b) => b.testament == 'NT')
-        .where(matches)
-        .toList();
+    final ot =
+        bible.books.where((b) => b.testament == 'OT').where(matches).toList();
+    final nt =
+        bible.books.where((b) => b.testament == 'NT').where(matches).toList();
 
     return DraggableScrollableSheet(
       initialChildSize: 0.75,

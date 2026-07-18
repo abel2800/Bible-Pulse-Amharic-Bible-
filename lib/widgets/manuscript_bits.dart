@@ -82,7 +82,8 @@ class AppPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.colors;
-    final bg = selected ? (selectedColor ?? const Color(0xFF1E7F72)) : t.surface2;
+    final bg =
+        selected ? (selectedColor ?? const Color(0xFF1E7F72)) : t.surface2;
     final textStyle = isFlutterTest
         ? TextStyle(
             fontFamily: 'sans-serif',

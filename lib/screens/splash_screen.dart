@@ -109,7 +109,8 @@ class _SplashScreenState extends State<SplashScreen>
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFFC08A28).withValues(alpha: 0.45),
+                          color:
+                              const Color(0xFFC08A28).withValues(alpha: 0.45),
                           blurRadius: 50,
                           offset: const Offset(0, 20),
                         ),
@@ -123,13 +124,21 @@ class _SplashScreenState extends State<SplashScreen>
                   const SizedBox(height: 4),
                   Text('Scripture, illuminated.', style: taglineStyle),
                   const SizedBox(height: 30),
-                  SizedBox(
+                  Container(
                     width: 120,
                     height: 2,
-                    child: LinearProgressIndicator(
-                      backgroundColor: t.border,
-                      valueColor: const AlwaysStoppedAnimation(
-                        Color(0xFFC08A28),
+                    decoration: BoxDecoration(
+                      color: t.border,
+                      borderRadius: BorderRadius.circular(1),
+                    ),
+                    alignment: Alignment.centerLeft,
+                    child: FractionallySizedBox(
+                      widthFactor: 0.45,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFC08A28),
+                          borderRadius: BorderRadius.circular(1),
+                        ),
                       ),
                     ),
                   ),
