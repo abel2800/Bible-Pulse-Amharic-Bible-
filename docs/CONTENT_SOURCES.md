@@ -38,6 +38,19 @@ approve app-store redistribution. The downloaded source
 archive and expanded upstream files are reproducible working files and are not
 committed.
 
+## King James Version / American Standard Version
+
+- App translation IDs: `KJV`, `ASV`
+- License: Public Domain
+- Upstream packaging: [midvash/bible-data](https://github.com/midvash/bible-data)
+- Shipped as optional installable assets (`assets/bible/kjv.json`,
+  `assets/bible/asv.json`) so Bible Store installs work on web and native
+  without broken remote URLs
+- Rebuild: `python tools/scripture/fetch_kjv_asv.py`
+
+These packs are listed in the Bible Store and install on demand (they are not
+auto-bundled like WEB).
+
 ## Amharic Bible
 
 Status: disabled pending confirmed redistribution scope.
@@ -60,8 +73,28 @@ translation. Before enabling it, record:
 
 Reference: <https://ebible.org/amh/copyright.htm>
 
-## Audio, devotionals, plans, and hymns
+## WEB audio Bible (Henson / eBible)
 
-No remote audio or author-content catalog is enabled. These features remain
-capability-gated until API access/content rights, attribution, caching, and
-redistribution terms are recorded here.
+- App audio fileset ID: `web-henson-ebible`
+- Translation: World English Bible (`WEB`)
+- Narrator: Winfred W. Henson
+- Source page: <https://ebible.org/eng-web/audio/>
+- License: Public domain recording; eBible states you may download, copy, and
+  listen freely. The WEB text itself is public domain.
+- Delivery: chapter MP3s streamed over HTTPS from `ebible.org` (not bundled)
+- Chapter URL index: `assets/catalog/web_henson_audio_manifest.json`
+  (regenerate with `python tools/build_web_henson_audio_manifest.py`)
+
+BiblePulse enables this resolver by default when Bible Brain credentials are
+not configured. Playback uses the existing audio cache when downloads are
+permitted.
+
+Optional Bible Brain filesets remain available when
+`BIBLE_BRAIN_API_KEY`, `BIBLE_BRAIN_BIBLE_IDS_JSON`, and
+`BIBLE_BRAIN_MEDIA_HOSTS` are set at build time (see
+`docs/INTEGRATIONS_AND_RELEASE.md`).
+
+## Devotionals, plans, and hymns
+
+Author-content catalogs remain capability-gated until API access/content
+rights, attribution, caching, and redistribution terms are recorded here.

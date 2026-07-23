@@ -21,28 +21,33 @@ class BpCard extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final border = isDark ? AppTheme.borderDark : AppTheme.borderLight;
     final surface = isDark ? AppTheme.surfaceDark : AppTheme.surfaceLight;
+    final radius = BorderRadius.circular(16);
 
-    final card = Container(
-      margin: margin,
+    final body = Padding(
       padding: padding ?? const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: border),
-        boxShadow: AppTheme.cardShadow(isDark),
-      ),
       child: child,
     );
 
-    if (onTap == null) return card;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: card,
+    final shaped = Material(
+      color: surface,
+      elevation: 0,
+      shadowColor: Colors.black26,
+      shape: RoundedRectangleBorder(
+        borderRadius: radius,
+        side: BorderSide(color: border),
       ),
+      clipBehavior: Clip.antiAlias,
+      child: onTap == null
+          ? body
+          : InkWell(
+              onTap: onTap,
+              borderRadius: radius,
+              child: body,
+            ),
     );
+
+    if (margin == null) return shaped;
+    return Padding(padding: margin!, child: shaped);
   }
 }
 

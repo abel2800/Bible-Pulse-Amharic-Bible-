@@ -53,8 +53,14 @@ dev_dependencies:
   sqflite_common_ffi: ^2.3.6
 
 flutter:
+  generate: true
   uses-material-design: true
 
   assets:
     - assets/content_manifest.json
     - assets/bible/web.json
+    - assets/bible/kjv.json
+    - assets/bible/asv.json
+    - assets/catalog/bible_catalog.json
+    - assets/catalog/audio_catalog.json
+    - assets/catalog/web_henson_audio_manifest.json

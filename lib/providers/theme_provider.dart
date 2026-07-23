@@ -53,7 +53,7 @@ class ThemeProvider with ChangeNotifier {
   }
 
   Future<void> setLocale(Locale locale) async {
-    _locale = locale;
+    _locale = Locale(locale.languageCode);
     notifyListeners();
 
     final prefs = await SharedPreferences.getInstance();
@@ -61,10 +61,9 @@ class ThemeProvider with ChangeNotifier {
   }
 
   Future<void> toggleLanguage() async {
-    if (_locale.languageCode == 'en') {
-      await setLocale(const Locale('am', ''));
-    } else {
-      await setLocale(const Locale('en', ''));
-    }
+    const order = ['en', 'am', 'om', 'ti', 'so'];
+    final index = order.indexOf(_locale.languageCode);
+    final next = order[(index + 1) % order.length];
+    await setLocale(Locale(next));
   }
 }

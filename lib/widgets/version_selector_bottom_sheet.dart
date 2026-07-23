@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 
 import '../l10n/app_localizations.dart';
 import '../providers/bible_provider.dart';
+import '../providers/bible_store_provider.dart';
+import '../providers/user_preferences_provider.dart';
 import '../utils/app_theme.dart';
 import 'design/bp_widgets.dart';
 
@@ -12,21 +14,22 @@ class VersionSelectorBottomSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bible = context.watch<BibleProvider>();
+    final store = context.watch<BibleStoreProvider>();
+    final prefs = context.watch<UserPreferencesProvider>();
     final l10n = AppLocalizations.of(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final surface = isDark ? AppTheme.surfaceDark : AppTheme.surfaceLight;
     final ink = isDark ? AppTheme.inkDark : AppTheme.ink;
+    final soft = isDark ? AppTheme.inkSoftDark : AppTheme.inkSoft;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        border: Border(
-          top: BorderSide(
-            color: isDark ? AppTheme.borderDark : AppTheme.borderLight,
-          ),
-        ),
-      ),
+    final installed = store.catalog
+        .where((pkg) => store.isInstalled(pkg.id))
+        .toList();
+
+    return Material(
+      color: surface,
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      clipBehavior: Clip.antiAlias,
       child: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
@@ -59,63 +62,118 @@ class VersionSelectorBottomSheet extends StatelessWidget {
                   ),
                   BpIconButton(
                     icon: Icons.close_rounded,
-                    tooltip: 'Close',
+                    tooltip: l10n.close,
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
-              BpCard(
-                padding: EdgeInsets.zero,
-                onTap: () async {
-                  await bible.changeVersion('WEB');
-                  if (context.mounted) Navigator.pop(context);
+              const SizedBox(height: 8),
+              TextButton.icon(
+                onPressed: () {
+                  Navigator.pop(context);
+                  Navigator.pushNamed(context, '/bible_store');
                 },
-                child: ListTile(
-                  minTileHeight: 72,
-                  leading: Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: AppTheme.gold.withValues(alpha: 0.15),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: AppTheme.gold.withValues(alpha: 0.4),
-                      ),
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      'W',
-                      style: AppTheme.brandTitle(
-                        fontSize: 18,
-                        weight: FontWeight.w700,
-                        color: AppTheme.gold,
-                      ),
-                    ),
-                  ),
-                  title: Text(
-                    'World English Bible',
-                    style: AppTheme.ui(
-                      fontSize: 14,
-                      weight: FontWeight.w600,
-                      color: ink,
-                    ),
-                  ),
-                  subtitle: Text(
-                    'English · Public Domain',
-                    style: AppTheme.ui(
-                      fontSize: 12,
-                      color: isDark ? AppTheme.inkSoftDark : AppTheme.inkSoft,
-                    ),
-                  ),
-                  trailing: bible.currentVersion == 'WEB'
-                      ? const Icon(
-                          Icons.check_circle_rounded,
-                          color: AppTheme.teal,
-                        )
-                      : null,
+                icon: const Icon(Icons.storefront_outlined, size: 18),
+                label: Text(l10n.bibleStore),
+              ),
+              const SizedBox(height: 8),
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: installed.isEmpty ? 1 : installed.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 10),
+                  itemBuilder: (context, index) {
+                    if (installed.isEmpty) {
+                      return _VersionRow(
+                        title: 'World English Bible',
+                        subtitle: '${l10n.english} · ${l10n.publicDomain}',
+                        selected: bible.currentVersion == 'WEB',
+                        ink: ink,
+                        soft: soft,
+                        onTap: () async {
+                          await bible.changeVersion('WEB');
+                          await prefs.setPreferredBible('WEB');
+                          if (context.mounted) Navigator.pop(context);
+                        },
+                      );
+                    }
+                    final pkg = installed[index];
+                    final selected = bible.currentVersion == pkg.versionId;
+                    return _VersionRow(
+                      title: pkg.name,
+                      subtitle: '${pkg.languageName} · ${pkg.abbreviation}',
+                      selected: selected,
+                      ink: ink,
+                      soft: soft,
+                      onTap: () async {
+                        await bible.changeVersion(pkg.versionId);
+                        await prefs.setPreferredBible(pkg.versionId);
+                        if (context.mounted) Navigator.pop(context);
+                      },
+                    );
+                  },
                 ),
               ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _VersionRow extends StatelessWidget {
+  const _VersionRow({
+    required this.title,
+    required this.subtitle,
+    required this.selected,
+    required this.ink,
+    required this.soft,
+    required this.onTap,
+  });
+
+  final String title;
+  final String subtitle;
+  final bool selected;
+  final Color ink;
+  final Color soft;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Material(
+      color: isDark ? AppTheme.surface2Dark : AppTheme.surface2Light,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: AppTheme.ui(
+                        fontSize: 15,
+                        weight: FontWeight.w600,
+                        color: ink,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: AppTheme.ui(fontSize: 12, color: soft),
+                    ),
+                  ],
+                ),
+              ),
+              if (selected)
+                const Icon(Icons.check_circle, color: AppTheme.gold),
             ],
           ),
         ),

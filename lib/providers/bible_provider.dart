@@ -47,7 +47,18 @@ class BibleProvider with ChangeNotifier {
   BibleVerse? _verseOfTheDay;
 
   Future<void> _initialize() async {
+    final prefs = await SharedPreferences.getInstance();
+    _currentVersion =
+        prefs.getString('preferred_bible_version') ??
+            prefs.getString('last_read_version') ??
+            'WEB';
+
     await loadBooks();
+    if (_books.isEmpty && _currentVersion != 'WEB') {
+      _currentVersion = 'WEB';
+      await prefs.setString('preferred_bible_version', 'WEB');
+      await loadBooks();
+    }
     if (_books.isNotEmpty) {
       final dailyChapter =
           await _bibleService.getChapter(_currentVersion, 43, 3);
@@ -57,7 +68,6 @@ class BibleProvider with ChangeNotifier {
         _verseOfTheDay = dailyChapter[day % dailyChapter.length];
       }
 
-      final prefs = await SharedPreferences.getInstance();
       final bookId = prefs.getInt('last_read_book') ?? 1;
       final chapter = prefs.getInt('last_read_chapter') ?? 1;
       final verse = prefs.getInt('last_read_verse') ?? 1;
@@ -110,10 +120,16 @@ class BibleProvider with ChangeNotifier {
 
   Future<void> changeVersion(String version) async {
     _currentVersion = version;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('last_read_version', version);
+    await prefs.setString('preferred_bible_version', version);
+    _bibleService.invalidateCache(version);
     await loadBooks();
 
     if (_selectedBook != null) {
       await loadChapter(_selectedBook!.id, _selectedChapter);
+    } else if (_books.isNotEmpty) {
+      await loadChapter(_books.first.id, 1);
     }
   }
 

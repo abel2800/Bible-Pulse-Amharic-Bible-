@@ -40,9 +40,12 @@ npm ci --prefix firebase-tests
 npx firebase-tools@latest emulators:exec --only firestore "npm --prefix firebase-tests test"
 ```
 
-## Bible Brain audio
+## Audio Bible
 
-Audio requires:
+**Default:** public-domain WEB narration (Winfred W. Henson via eBible.org) is
+enabled without build-time credentials. See `docs/CONTENT_SOURCES.md`.
+
+**Optional Bible Brain:**
 
 ```text
 BIBLE_BRAIN_API_KEY
@@ -50,7 +53,8 @@ BIBLE_BRAIN_BIBLE_IDS_JSON={"WEB":"approved-bible-id","AMH":"approved-bible-id"}
 BIBLE_BRAIN_MEDIA_HOSTS=approved.cdn.example,other.approved.host
 ```
 
-The app discovers audio filesets, caches catalog responses for 24 hours, and
+When those defines are set, Bible Brain replaces the default resolver. The app
+discovers audio filesets, caches catalog responses for 24 hours, and
 checks the credential-scoped `/download/list`. Only download-permitted filesets
 may be stored. Streaming-only filesets are never cached. Media must use HTTPS
 and an allowlisted host.
@@ -60,8 +64,9 @@ per-book and whole-Bible queues, Wi-Fi-only policy, quota eviction, cache-size
 display, and clearing. Verse synchronization activates only when timing data is
 available.
 
-Before production activation, record API approval, attribution, rate limits,
-language coverage, caching terms, and real-device interruption/offline tests.
+Before production activation of Bible Brain, record API approval, attribution,
+rate limits, language coverage, caching terms, and real-device interruption/
+offline tests.
 
 ## Notifications
 

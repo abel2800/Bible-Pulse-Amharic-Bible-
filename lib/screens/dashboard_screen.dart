@@ -8,13 +8,19 @@ import '../providers/engagement_provider.dart';
 import '../providers/navigation_provider.dart';
 import '../providers/study_provider.dart';
 import '../providers/theme_provider.dart';
+import '../services/auth_service.dart';
 import '../utils/app_theme.dart';
 import '../widgets/app_drawer.dart';
-import '../widgets/design/bp_widgets.dart';
-import '../widgets/manuscript_bits.dart';
 
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
+
+  @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  int _topTab = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -24,10 +30,24 @@ class DashboardScreen extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final capabilities = context.watch<AppCapabilities>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final ink = isDark ? AppTheme.inkDark : AppTheme.ink;
-    final faint = isDark ? AppTheme.inkFaintDark : AppTheme.inkFaint;
+    final bg = isDark ? Colors.black : AppTheme.appBgLight;
+    final ink = isDark ? Colors.white : AppTheme.ink;
+    final soft = isDark ? Colors.white70 : AppTheme.inkSoft;
+    final card = isDark ? const Color(0xFF1C1C1E) : AppTheme.surfaceLight;
+    final streak = context.watch<EngagementProvider>().streakWithGrace();
+    final auth = context.watch<AuthService>();
+    final name = auth.currentUser?.displayName?.split(' ').first;
+    final hour = DateTime.now().hour;
+    final greeting = hour < 12
+        ? l10n.goodMorning
+        : hour < 17
+            ? l10n.goodAfternoon
+            : l10n.goodEvening;
+    final greetLine =
+        name == null || name.isEmpty ? greeting : '$greeting, $name';
 
     return Scaffold(
+      backgroundColor: bg,
       drawer: const AppDrawer(),
       body: SafeArea(
         child: Center(
@@ -37,31 +57,45 @@ class DashboardScreen extends StatelessWidget {
               slivers: [
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                    padding: const EdgeInsets.fromLTRB(16, 8, 12, 0),
                     child: Builder(
                       builder: (context) => Row(
                         children: [
-                          BpIconButton(
-                            icon: Icons.menu_rounded,
-                            tooltip: 'Open menu',
-                            onPressed: () => Scaffold.of(context).openDrawer(),
+                          _TopTab(
+                            label: 'Today',
+                            selected: _topTab == 0,
+                            accent: const Color(0xFFE53935),
+                            onTap: () => setState(() => _topTab = 0),
+                          ),
+                          const SizedBox(width: 18),
+                          _TopTab(
+                            label: 'Community',
+                            selected: _topTab == 1,
+                            accent: const Color(0xFFE53935),
+                            onTap: () {
+                              setState(() => _topTab = 1);
+                              if (capabilities.community) {
+                                Navigator.pushNamed(context, '/community');
+                              }
+                            },
                           ),
                           const Spacer(),
-                          BpIconButton(
-                            icon: Icons.search_rounded,
-                            tooltip: 'Search Scripture',
-                            onPressed: () =>
-                                context.read<NavigationProvider>().setIndex(2),
+                          _HeaderIcon(
+                            icon: Icons.bolt_rounded,
+                            badge: streak > 0 ? '$streak' : null,
+                            onTap: () {},
                           ),
-                          const SizedBox(width: 8),
-                          BpIconButton(
+                          const SizedBox(width: 4),
+                          _HeaderIcon(
+                            icon: Icons.notifications_none_rounded,
+                            onTap: () => Scaffold.of(context).openDrawer(),
+                          ),
+                          const SizedBox(width: 4),
+                          _HeaderIcon(
                             icon: theme.isDarkMode
                                 ? Icons.light_mode_rounded
                                 : Icons.dark_mode_rounded,
-                            tooltip: theme.isDarkMode
-                                ? 'Use light mode'
-                                : 'Use dark mode',
-                            onPressed: theme.toggleTheme,
+                            onTap: theme.toggleTheme,
                           ),
                         ],
                       ),
@@ -69,147 +103,140 @@ class DashboardScreen extends StatelessWidget {
                   ),
                 ),
                 SliverToBoxAdapter(
-                  child: _GreetingHeader(l10n: l10n),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
+                    child: Text(
+                      greetLine,
+                      style: TextStyle(
+                        fontFamily: 'Georgia',
+                        fontSize: 28,
+                        fontWeight: FontWeight.w700,
+                        color: ink,
+                        height: 1.15,
+                      ),
+                    ),
+                  ),
                 ),
                 if (dailyVerse != null)
                   SliverToBoxAdapter(
-                    child: _VerseOfDayCard(
+                    child: _VerseOfDayHero(
                       verse: dailyVerse.text,
-                      reference: '${bible.getVerseReference(dailyVerse)} · WEB',
-                    ),
-                  )
-                else
-                  const SliverToBoxAdapter(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 20),
-                      child: BpCard(
-                        child:
-                            Text('Verified Scripture content has not loaded.'),
-                      ),
+                      reference:
+                          '${bible.getVerseReference(dailyVerse)} · WEB',
+                      isDark: isDark,
+                      onOpen: () async {
+                        await bible.goToVerse(
+                          dailyVerse.book,
+                          dailyVerse.chapter,
+                          dailyVerse.verse,
+                        );
+                        if (context.mounted) {
+                          context.read<NavigationProvider>().setIndex(1);
+                        }
+                      },
                     ),
                   ),
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
-                    child: GridView.count(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      crossAxisCount: 2,
-                      mainAxisSpacing: 12,
-                      crossAxisSpacing: 12,
-                      childAspectRatio: 1.35,
-                      children: [
-                        _QuickCard(
-                          icon: Icons.compare_arrows_rounded,
-                          title: 'Parallel read',
-                          subtitle: 'Amharic + English',
-                          onTap: () =>
-                              context.read<NavigationProvider>().setIndex(1),
-                        ),
-                        _QuickCard(
-                          icon: Icons.headphones_rounded,
-                          title: 'Listen',
-                          subtitle: capabilities.audio
-                              ? 'Chapter audio'
-                              : 'Audio gated',
-                          onTap: () =>
-                              context.read<NavigationProvider>().setIndex(1),
-                        ),
-                        _QuickCard(
-                          icon: Icons.auto_stories_rounded,
-                          title: 'Reading plans',
-                          subtitle: capabilities.readingPlans
-                              ? 'Continue a plan'
-                              : 'Coming with license',
-                          onTap: capabilities.readingPlans
-                              ? () => Navigator.pushNamed(
-                                    context,
-                                    '/reading_plans',
-                                  )
-                              : null,
-                        ),
-                        _QuickCard(
-                          icon: Icons.music_note_rounded,
-                          title: 'Hymns',
-                          subtitle: capabilities.hymns
-                              ? 'Open library'
-                              : 'Coming with license',
-                          onTap: capabilities.hymns
-                              ? () => Navigator.pushNamed(context, '/hymns')
-                              : null,
-                        ),
-                      ],
+                    child: _GuidedRow(
+                      eyebrow: 'Continue reading',
+                      title: bible.selectedBook == null
+                          ? 'Open Scripture'
+                          : '${bible.selectedBook!.name} ${bible.selectedChapter}',
+                      durationLabel: capabilities.audio ? '▶ Listen' : 'Read',
+                      cardColor: card,
+                      ink: ink,
+                      soft: soft,
+                      onTap: () =>
+                          context.read<NavigationProvider>().setIndex(1),
                     ),
                   ),
                 ),
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.only(top: 22),
-                    child: BpSectionLabel(
-                      title: 'Continue reading',
-                      action: 'See all',
-                      onAction: () =>
-                          context.read<NavigationProvider>().setIndex(1),
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                    child: _GuidedRow(
+                      eyebrow: 'Study',
+                      title: context.watch<StudyProvider>().notes.isEmpty
+                          ? 'Capture a note while you read'
+                          : '${context.watch<StudyProvider>().notes.length} notes saved',
+                      durationLabel: 'Open',
+                      cardColor: card,
+                      ink: ink,
+                      soft: soft,
+                      onTap: () =>
+                          context.read<NavigationProvider>().setIndex(2),
+                    ),
+                  ),
+                ),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 22, 20, 8),
+                    child: Text(
+                      'More for you',
+                      style: AppTheme.ui(
+                        fontSize: 18,
+                        weight: FontWeight.w700,
+                        color: ink,
+                      ),
                     ),
                   ),
                 ),
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
-                    child: BpCard(
-                      onTap: () =>
-                          context.read<NavigationProvider>().setIndex(1),
-                      padding: const EdgeInsets.all(14),
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: card,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                       child: Row(
                         children: [
-                          Container(
-                            width: 44,
-                            height: 56,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(6),
-                              gradient: const LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [AppTheme.goldSoft, AppTheme.vermilion],
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  bible.selectedBook?.name ?? 'Open Scripture',
+                                  'Need a place to begin? Open the Bible and listen while you read.',
                                   style: AppTheme.ui(
-                                    fontSize: 13.5,
-                                    weight: FontWeight.w600,
-                                    color: ink,
+                                    fontSize: 14,
+                                    color: soft,
                                   ),
                                 ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  bible.selectedBook == null
-                                      ? 'Start reading'
-                                      : 'Chapter ${bible.selectedChapter}',
-                                  style: AppTheme.ui(
-                                    fontSize: 11,
-                                    color: faint,
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(2),
-                                  child: LinearProgressIndicator(
-                                    value: 0.63,
-                                    minHeight: 4,
+                                const SizedBox(height: 12),
+                                FilledButton(
+                                  onPressed: () => context
+                                      .read<NavigationProvider>()
+                                      .setIndex(1),
+                                  style: FilledButton.styleFrom(
                                     backgroundColor: isDark
-                                        ? AppTheme.borderDark
-                                        : AppTheme.borderLight,
-                                    color: AppTheme.teal,
+                                        ? const Color(0xFF2C2C2E)
+                                        : AppTheme.surface2Light,
+                                    foregroundColor: ink,
                                   ),
+                                  child: const Text('Open Bible'),
                                 ),
                               ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Container(
+                            width: 72,
+                            height: 72,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
+                              gradient: const LinearGradient(
+                                colors: [
+                                  Color(0xFF5B2C6F),
+                                  Color(0xFF1A1A2E),
+                                ],
+                              ),
+                            ),
+                            child: const Icon(
+                              Icons.menu_book_rounded,
+                              color: Colors.white70,
                             ),
                           ),
                         ],
@@ -226,146 +253,42 @@ class DashboardScreen extends StatelessWidget {
   }
 }
 
-class _GreetingHeader extends StatelessWidget {
-  const _GreetingHeader({required this.l10n});
+class _TopTab extends StatelessWidget {
+  const _TopTab({
+    required this.label,
+    required this.selected,
+    required this.accent,
+    required this.onTap,
+  });
 
-  final AppLocalizations l10n;
+  final String label;
+  final bool selected;
+  final Color accent;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final hour = DateTime.now().hour;
-    final greeting = hour < 12
-        ? l10n.goodMorning
-        : hour < 17
-            ? l10n.goodAfternoon
-            : l10n.goodEvening;
-    final streak = context.watch<EngagementProvider>().streakWithGrace();
-    final memories = context.watch<StudyProvider>().onThisDay();
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final ink = isDark ? AppTheme.inkDark : AppTheme.ink;
-    final faint = isDark ? AppTheme.inkFaintDark : AppTheme.inkFaint;
-    final soft = isDark ? AppTheme.inkSoftDark : AppTheme.inkSoft;
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+    return InkWell(
+      onTap: onTap,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            greeting.toUpperCase(),
+            label,
             style: AppTheme.ui(
-              fontSize: 11,
-              weight: FontWeight.w600,
-              letterSpacing: 1.5,
-              color: faint,
+              fontSize: 16,
+              weight: selected ? FontWeight.w700 : FontWeight.w500,
+              color: selected
+                  ? (isDark ? Colors.white : AppTheme.ink)
+                  : (isDark ? Colors.white54 : AppTheme.inkSoft),
             ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            'Welcome',
-            style: AppTheme.brandTitle(fontSize: 24, color: ink),
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              const Text('●',
-                  style: TextStyle(color: AppTheme.vermilion, fontSize: 13)),
-              const SizedBox(width: 6),
-              Flexible(
-                child: Text(
-                  '$streak-day streak · grace day available',
-                  style: AppTheme.ui(
-                      fontSize: 12, weight: FontWeight.w500, color: soft),
-                ),
-              ),
-            ],
-          ),
-          if (memories.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Text(
-              'On this day · ${memories.first.reference}',
-              style: AppTheme.ui(
-                  fontSize: 11, weight: FontWeight.w600, color: AppTheme.gold),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _VerseOfDayCard extends StatelessWidget {
-  const _VerseOfDayCard({required this.verse, required this.reference});
-
-  final String verse;
-  final String reference;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = context.colors;
-    final drop = verse.trim().isEmpty ? 'A' : verse.trim().characters.first;
-    final rest = verse.trim().isEmpty
-        ? ''
-        : verse.trim().substring(drop.length).trimLeft();
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          BpCard(
-            padding: const EdgeInsets.fromLTRB(20, 28, 20, 20),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: DropCap(drop.toUpperCase()),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        rest,
-                        style: AppText.scripture(context, size: 15.5),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        reference.toUpperCase(),
-                        style: AppText.ui(
-                          context,
-                          size: 11.5,
-                          w: FontWeight.w600,
-                          color: t.inkSoft,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Positioned(
-            top: -10,
-            left: 18,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: AppTheme.gold,
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: Text(
-                'VERSE OF THE DAY',
-                style: AppTheme.ui(
-                  fontSize: 10,
-                  weight: FontWeight.w700,
-                  letterSpacing: 0.8,
-                  color: AppTheme.onGold,
-                ),
-              ),
-            ),
+          const SizedBox(height: 6),
+          Container(
+            width: 28,
+            height: 2.5,
+            color: selected ? accent : Colors.transparent,
           ),
         ],
       ),
@@ -373,53 +296,196 @@ class _VerseOfDayCard extends StatelessWidget {
   }
 }
 
-class _QuickCard extends StatelessWidget {
-  const _QuickCard({
+class _HeaderIcon extends StatelessWidget {
+  const _HeaderIcon({
     required this.icon,
-    required this.title,
-    required this.subtitle,
-    this.onTap,
+    required this.onTap,
+    this.badge,
   });
 
   final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback? onTap;
+  final VoidCallback onTap;
+  final String? badge;
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final ink = isDark ? AppTheme.inkDark : AppTheme.ink;
-    final faint = isDark ? AppTheme.inkFaintDark : AppTheme.inkFaint;
-    final surface2 = isDark ? AppTheme.surface2Dark : AppTheme.surface2Light;
+    return IconButton(
+      onPressed: onTap,
+      icon: Badge(
+        isLabelVisible: badge != null,
+        label: badge == null ? null : Text(badge!),
+        child: Icon(
+          icon,
+          color: isDark ? Colors.white : AppTheme.ink,
+        ),
+      ),
+    );
+  }
+}
 
-    return BpCard(
-      onTap: onTap,
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 34,
-            height: 34,
+class _VerseOfDayHero extends StatelessWidget {
+  const _VerseOfDayHero({
+    required this.verse,
+    required this.reference,
+    required this.isDark,
+    required this.onOpen,
+  });
+
+  final String verse;
+  final String reference;
+  final bool isDark;
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onOpen,
+          borderRadius: BorderRadius.circular(18),
+          child: Ink(
             decoration: BoxDecoration(
-              color: surface2,
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(18),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: isDark
+                    ? const [Color(0xFF2D1B4E), Color(0xFF0D0D0D)]
+                    : const [Color(0xFF3D2B1F), Color(0xFF1A1420)],
+              ),
             ),
-            child: Icon(icon, size: 18, color: AppTheme.teal),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Verse of the Day',
+                    style: AppTheme.ui(
+                      fontSize: 12,
+                      weight: FontWeight.w600,
+                      color: Colors.white70,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    reference,
+                    style: AppTheme.ui(
+                      fontSize: 13,
+                      weight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    verse,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontFamily: 'Georgia',
+                      fontSize: 20,
+                      height: 1.45,
+                      color: Colors.white,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  const Row(
+                    children: [
+                      Icon(Icons.favorite_border,
+                          size: 18, color: Colors.white70),
+                      SizedBox(width: 16),
+                      Icon(Icons.chat_bubble_outline,
+                          size: 18, color: Colors.white70),
+                      SizedBox(width: 16),
+                      Icon(Icons.ios_share_rounded,
+                          size: 18, color: Colors.white70),
+                      Spacer(),
+                      Icon(Icons.more_horiz, color: Colors.white70),
+                    ],
+                  ),
+                ],
+              ),
+            ),
           ),
-          const Spacer(),
-          Text(
-            title,
-            style:
-                AppTheme.ui(fontSize: 13, weight: FontWeight.w600, color: ink),
+        ),
+      ),
+    );
+  }
+}
+
+class _GuidedRow extends StatelessWidget {
+  const _GuidedRow({
+    required this.eyebrow,
+    required this.title,
+    required this.durationLabel,
+    required this.cardColor,
+    required this.ink,
+    required this.soft,
+    required this.onTap,
+  });
+
+  final String eyebrow;
+  final String title;
+  final String durationLabel;
+  final Color cardColor;
+  final Color ink;
+  final Color soft;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: cardColor,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      eyebrow,
+                      style: AppTheme.ui(fontSize: 12, color: soft),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      title,
+                      style: AppTheme.ui(
+                        fontSize: 16,
+                        weight: FontWeight.w700,
+                        color: ink,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      durationLabel,
+                      style: AppTheme.ui(fontSize: 12, color: soft),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF4A5568), Color(0xFF1A202C)],
+                  ),
+                ),
+                child: const Icon(Icons.play_arrow_rounded, color: Colors.white),
+              ),
+            ],
           ),
-          const SizedBox(height: 2),
-          Text(
-            subtitle,
-            style: AppTheme.ui(fontSize: 11, color: faint),
-          ),
-        ],
+        ),
       ),
     );
   }

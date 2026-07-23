@@ -65,21 +65,19 @@ class _VerseActionBottomSheetState extends State<VerseActionBottomSheet> {
             .toList()
         : const [];
 
-    return Container(
-      decoration: BoxDecoration(
-        color: surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        border: Border(top: BorderSide(color: border)),
-        boxShadow: List<BoxShadow>.from(AppTheme.cardShadow(isDark)),
-      ),
-      padding: EdgeInsets.only(
-        left: 20,
-        right: 20,
-        top: 12,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-      ),
-      child: SingleChildScrollView(
-        child: Column(
+    return Material(
+      color: surface,
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 12,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+        ),
+        child: SingleChildScrollView(
+          child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -323,6 +321,7 @@ class _VerseActionBottomSheetState extends State<VerseActionBottomSheet> {
             ),
           ],
         ),
+      ),
       ),
     );
   }

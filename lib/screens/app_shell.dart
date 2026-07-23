@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../l10n/app_localizations.dart';
 import '../providers/navigation_provider.dart';
 import '../utils/app_theme.dart';
 import 'bible_reader_screen.dart';
@@ -9,49 +10,50 @@ import 'search_screen.dart';
 import 'settings_screen.dart';
 import 'study_screen.dart';
 
-/// Single navigation shell: Home / Read / Search / Study / Settings.
+/// Shell: Home / Bible / Plans / Discover / You.
 class AppShell extends StatelessWidget {
   const AppShell({super.key});
-
-  static const _destinations = [
-    NavigationDestination(
-      icon: Icon(Icons.home_outlined),
-      selectedIcon: Icon(Icons.home),
-      label: 'Home',
-    ),
-    NavigationDestination(
-      icon: Icon(Icons.menu_book_outlined),
-      selectedIcon: Icon(Icons.menu_book),
-      label: 'Read',
-    ),
-    NavigationDestination(
-      icon: Icon(Icons.search_outlined),
-      selectedIcon: Icon(Icons.search),
-      label: 'Search',
-    ),
-    NavigationDestination(
-      icon: Icon(Icons.edit_note_outlined),
-      selectedIcon: Icon(Icons.edit_note),
-      label: 'Study',
-    ),
-    NavigationDestination(
-      icon: Icon(Icons.settings_outlined),
-      selectedIcon: Icon(Icons.settings),
-      label: 'Settings',
-    ),
-  ];
 
   @override
   Widget build(BuildContext context) {
     final navigation = context.watch<NavigationProvider>();
+    final l10n = AppLocalizations.of(context);
     final t = context.colors;
     final index = navigation.selectedIndex.clamp(0, 4);
+
+    final destinations = [
+      NavigationDestination(
+        icon: const Icon(Icons.home_outlined),
+        selectedIcon: const Icon(Icons.home),
+        label: l10n.navHome,
+      ),
+      NavigationDestination(
+        icon: const Icon(Icons.menu_book_outlined),
+        selectedIcon: const Icon(Icons.menu_book),
+        label: l10n.navRead,
+      ),
+      NavigationDestination(
+        icon: const Icon(Icons.check_box_outlined),
+        selectedIcon: const Icon(Icons.check_box),
+        label: l10n.navStudy,
+      ),
+      NavigationDestination(
+        icon: const Icon(Icons.search_outlined),
+        selectedIcon: const Icon(Icons.search),
+        label: l10n.navSearch,
+      ),
+      NavigationDestination(
+        icon: const Icon(Icons.person_outline),
+        selectedIcon: const Icon(Icons.person),
+        label: l10n.navSettings,
+      ),
+    ];
 
     const pages = [
       DashboardScreen(),
       BibleReaderScreen(),
-      SearchScreen(),
       StudyScreen(),
+      SearchScreen(),
       SettingsScreen(),
     ];
 
@@ -85,37 +87,37 @@ class AppShell extends StatelessWidget {
                             TextSpan(text: 'Bible'),
                             TextSpan(
                               text: 'Pulse',
-                              style: TextStyle(color: AppBrand.gold),
+                              style: TextStyle(color: AppTheme.gold),
                             ),
                           ],
                         ),
                       ),
                     ),
-                    destinations: const [
+                    destinations: [
                       NavigationRailDestination(
-                        icon: Icon(Icons.home_outlined),
-                        selectedIcon: Icon(Icons.home),
-                        label: Text('Home'),
+                        icon: const Icon(Icons.home_outlined),
+                        selectedIcon: const Icon(Icons.home),
+                        label: Text(l10n.navHome),
                       ),
                       NavigationRailDestination(
-                        icon: Icon(Icons.menu_book_outlined),
-                        selectedIcon: Icon(Icons.menu_book),
-                        label: Text('Read'),
+                        icon: const Icon(Icons.menu_book_outlined),
+                        selectedIcon: const Icon(Icons.menu_book),
+                        label: Text(l10n.navRead),
                       ),
                       NavigationRailDestination(
-                        icon: Icon(Icons.search_outlined),
-                        selectedIcon: Icon(Icons.search),
-                        label: Text('Search'),
+                        icon: const Icon(Icons.check_box_outlined),
+                        selectedIcon: const Icon(Icons.check_box),
+                        label: Text(l10n.navStudy),
                       ),
                       NavigationRailDestination(
-                        icon: Icon(Icons.edit_note_outlined),
-                        selectedIcon: Icon(Icons.edit_note),
-                        label: Text('Study'),
+                        icon: const Icon(Icons.search_outlined),
+                        selectedIcon: const Icon(Icons.search),
+                        label: Text(l10n.navSearch),
                       ),
                       NavigationRailDestination(
-                        icon: Icon(Icons.settings_outlined),
-                        selectedIcon: Icon(Icons.settings),
-                        label: Text('Settings'),
+                        icon: const Icon(Icons.person_outline),
+                        selectedIcon: const Icon(Icons.person),
+                        label: Text(l10n.navSettings),
                       ),
                     ],
                   ),
@@ -138,7 +140,7 @@ class AppShell extends StatelessWidget {
             child: NavigationBar(
               selectedIndex: index,
               onDestinationSelected: navigation.setIndex,
-              destinations: _destinations,
+              destinations: destinations,
             ),
           ),
         );

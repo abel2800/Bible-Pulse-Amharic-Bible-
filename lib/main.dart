@@ -15,6 +15,7 @@ import 'services/audio_service.dart';
 import 'services/audio_contracts.dart';
 import 'services/bible_brain_audio_resolver.dart';
 import 'services/bible_brain_catalog_service.dart';
+import 'services/public_domain_web_audio_resolver.dart';
 import 'services/auth_service.dart';
 import 'services/study_sync_service.dart';
 import 'services/study_group_service.dart';
@@ -30,6 +31,9 @@ import 'providers/parallel_reading_provider.dart';
 import 'providers/study_group_provider.dart';
 import 'providers/theme_provider.dart';
 import 'providers/bible_provider.dart';
+import 'providers/bible_store_provider.dart';
+import 'providers/audio_store_provider.dart';
+import 'providers/user_preferences_provider.dart';
 import 'providers/study_provider.dart';
 import 'providers/navigation_provider.dart';
 import 'providers/color_theme_provider.dart';
@@ -37,10 +41,14 @@ import 'providers/reminder_provider.dart';
 import 'providers/font_settings_provider.dart';
 import 'services/notification_service.dart';
 import 'services/database_service.dart';
+import 'services/bible_service.dart';
+import 'services/bible_package_service.dart';
 import 'screens/bootstrap_screen.dart';
 import 'screens/search_screen.dart';
 import 'screens/app_shell.dart';
 import 'screens/bible_reader_screen.dart';
+import 'screens/bible_store_screen.dart';
+import 'screens/audio_store_screen.dart';
 import 'screens/study_screen.dart';
 import 'screens/wallpaper_generator_screen.dart';
 import 'screens/settings_screen.dart';
@@ -53,6 +61,7 @@ import 'screens/study_groups_screen.dart';
 import 'screens/auth/auth_screen.dart';
 import 'utils/app_theme.dart';
 import 'l10n/app_localizations.dart';
+import 'l10n/fallback_localizations.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -99,6 +108,8 @@ void main() async {
         allowedMediaHosts: AudioConfig.mediaHosts,
         catalog: catalog,
       );
+    } else {
+      audioResolver = await PublicDomainWebAudioResolver.loadFromAssets();
     }
   } catch (error) {
     debugPrint('Audio configuration unavailable: $error');
@@ -214,12 +225,30 @@ class BiblePulseApp extends StatelessWidget {
           ),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(
+          create: (_) => UserPreferencesProvider()..initialize(),
+        ),
+        Provider(create: (_) => BiblePackageService()),
+        ChangeNotifierProvider(
+          create: (context) => BibleStoreProvider(
+            context.read<BiblePackageService>(),
+          )..initialize(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => AudioStoreProvider()..initialize(),
+        ),
+        ChangeNotifierProvider(
           create: (_) => EngagementProvider()..initialize(),
         ),
         ChangeNotifierProvider(
           create: (_) => ParallelReadingProvider()..initialize(),
         ),
-        ChangeNotifierProvider(create: (_) => BibleProvider()),
+        ChangeNotifierProvider(
+          create: (context) => BibleProvider(
+            bibleService: BibleService(
+              packageService: context.read<BiblePackageService>(),
+            ),
+          ),
+        ),
         ChangeNotifierProvider(
           create: (_) => StudyProvider(),
         ),
@@ -228,27 +257,38 @@ class BiblePulseApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ReminderProvider()..initialize()),
         ChangeNotifierProvider(create: (_) => FontSettingsProvider()),
       ],
-      child: Consumer<ThemeProvider>(
-        builder: (context, themeProvider, child) {
+      child: Consumer2<ThemeProvider, UserPreferencesProvider>(
+        builder: (context, themeProvider, userPrefs, child) {
           return MaterialApp(
             title: 'BiblePulse',
             debugShowCheckedModeBanner: false,
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,
             themeMode: themeProvider.themeMode,
-            locale: themeProvider.locale,
+            locale: userPrefs.ready
+                ? userPrefs.appLocale
+                : themeProvider.locale,
             supportedLocales: AppLocalizations.supportedLocales,
             localizationsDelegates: const [
               AppLocalizations.delegate,
-              GlobalMaterialLocalizations.delegate,
+              FallbackMaterialLocalizationsDelegate(),
+              FallbackCupertinoLocalizationsDelegate(),
               GlobalWidgetsLocalizations.delegate,
-              GlobalCupertinoLocalizations.delegate,
             ],
+            localeResolutionCallback: (locale, supported) {
+              if (locale == null) return supported.first;
+              for (final item in supported) {
+                if (item.languageCode == locale.languageCode) return item;
+              }
+              return supported.first;
+            },
             home: const BootstrapScreen(),
             routes: {
               '/home': (context) => const AppShell(),
               '/search': (context) => const SearchScreen(),
               '/bible': (context) => const BibleReaderScreen(),
+              '/bible_store': (context) => const BibleStoreScreen(),
+              '/audio_store': (context) => const AudioStoreScreen(),
               '/study': (context) => const StudyScreen(),
               '/wallpaper': (context) => const WallpaperGeneratorScreen(),
               '/settings': (context) => const SettingsScreen(),

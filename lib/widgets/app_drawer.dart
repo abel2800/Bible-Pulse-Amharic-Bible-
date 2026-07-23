@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../config/app_capabilities.dart';
+import '../l10n/app_localizations.dart';
 import '../providers/study_provider.dart';
 import '../services/auth_service.dart';
 import '../services/study_sync_service.dart';
@@ -14,6 +15,7 @@ class AppDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final capabilities = context.watch<AppCapabilities>();
+    final l10n = AppLocalizations.of(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final ink = isDark ? AppTheme.inkDark : AppTheme.ink;
     final inkSoft = isDark ? AppTheme.inkSoftDark : AppTheme.inkSoft;
@@ -45,7 +47,7 @@ class AppDrawer extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Offline reading',
+                    l10n.offlineReading,
                     style: AppTheme.ui(fontSize: 12.5, color: inkSoft),
                   ),
                 ],
@@ -53,42 +55,54 @@ class AppDrawer extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             const BpRule(),
-            _item(context, Icons.search_rounded, 'Search', '/search'),
+            _item(context, Icons.search_rounded, l10n.navSearch, '/search'),
+            _item(
+              context,
+              Icons.storefront_outlined,
+              l10n.bibleStore,
+              '/bible_store',
+            ),
+            _item(
+              context,
+              Icons.graphic_eq_outlined,
+              l10n.audioStore,
+              '/audio_store',
+            ),
             if (capabilities.devotionals)
               _item(
                 context,
                 Icons.self_improvement_rounded,
-                'Devotionals',
+                l10n.devotionals,
                 '/devotions',
               ),
             if (capabilities.readingPlans)
               _item(
                 context,
                 Icons.route_rounded,
-                'Reading plans',
+                l10n.readingPlans,
                 '/reading_plans',
               ),
             if (capabilities.cloud && capabilities.readingPlans)
               _item(
                 context,
                 Icons.groups_rounded,
-                'Private reading groups',
+                l10n.privateReadingGroups,
                 '/study_groups',
               ),
             if (capabilities.hymns)
-              _item(context, Icons.music_note_rounded, 'Hymns', '/hymns'),
+              _item(context, Icons.music_note_rounded, l10n.hymns, '/hymns'),
             _item(
               context,
               Icons.volunteer_activism_rounded,
-              'Prayer journal',
+              l10n.prayerJournal,
               '/prayer_journal',
             ),
             if (capabilities.community)
-              _item(context, Icons.forum_outlined, 'Community', '/community'),
+              _item(context, Icons.forum_outlined, l10n.community, '/community'),
             _item(
               context,
               Icons.wallpaper_rounded,
-              'Verse wallpaper',
+              l10n.verseWallpaper,
               '/wallpaper',
               enabled: capabilities.wallpaperExport,
             ),
@@ -99,20 +113,23 @@ class AppDrawer extends StatelessWidget {
                 minTileHeight: 48,
                 leading: Icon(Icons.cloud_off_rounded, color: inkSoft),
                 title: Text(
-                  'Cloud sync not configured',
+                  l10n.audioGated,
                   style: AppTheme.ui(fontSize: 13, color: inkSoft),
                 ),
               )
             else if (context.watch<AuthService>().currentUser == null)
-              _item(context, Icons.login_rounded, 'Sign in to sync', '/auth')
+              _item(context, Icons.login_rounded, l10n.signIn, '/auth')
             else ...[
               ListTile(
                 minTileHeight: 48,
                 leading: Icon(Icons.sync_rounded, color: inkSoft),
                 title: Text(
-                  'Sync study data',
+                  l10n.syncStudy,
                   style: AppTheme.ui(
-                      fontSize: 13.5, weight: FontWeight.w500, color: ink),
+                    fontSize: 13.5,
+                    weight: FontWeight.w500,
+                    color: ink,
+                  ),
                 ),
                 onTap: () async {
                   final user = context.read<AuthService>().currentUser!;
@@ -127,9 +144,12 @@ class AppDrawer extends StatelessWidget {
                 minTileHeight: 48,
                 leading: Icon(Icons.logout_rounded, color: inkSoft),
                 title: Text(
-                  'Sign out',
+                  l10n.signOut,
                   style: AppTheme.ui(
-                      fontSize: 13.5, weight: FontWeight.w500, color: ink),
+                    fontSize: 13.5,
+                    weight: FontWeight.w500,
+                    color: ink,
+                  ),
                 ),
                 onTap: () async {
                   await context.read<AuthService>().signOut();

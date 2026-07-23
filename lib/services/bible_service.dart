@@ -3,15 +3,29 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import '../models/bible_verse.dart';
 import '../models/bible_book.dart';
+import 'bible_package_io.dart' if (dart.library.html) 'bible_package_web.dart'
+    as fs;
+import 'bible_package_service.dart';
 
 class BibleService {
+  BibleService({BiblePackageService? packageService})
+      : _packageService = packageService;
+
+  final BiblePackageService? _packageService;
   final Map<String, Map<String, dynamic>> _bibleCache = {};
   final Map<String, List<BibleVerse>> _chapterCache = {};
   final Map<String, Map<String, List<BibleVerse>>> _searchIndexes = {};
 
-  final Map<String, String> _availableVersions = {
+  /// Built-in asset fallbacks (always available even before store init).
+  final Map<String, String> _bundledAssets = {
     'WEB': 'assets/bible/web.json',
   };
+
+  List<String> get availableVersions {
+    final fromPackages = _packageService?.installedVersionIds ?? const [];
+    final set = {..._bundledAssets.keys, ...fromPackages};
+    return set.toList()..sort();
+  }
 
   Future<List<BibleBook>> getBooks(String version) async {
     try {
@@ -273,12 +287,41 @@ class BibleService {
   }
 
   Future<void> _loadBibleFromAssets(String version) async {
-    final assetPath = _availableVersions[version];
+    final packagePath = _packageService?.sourceForVersion(version);
+    if (packagePath != null) {
+      if (packagePath.startsWith('asset:')) {
+        final assetPath = packagePath.substring('asset:'.length);
+        final jsonString = await rootBundle.loadString(assetPath);
+        _bibleCache[version] = json.decode(jsonString) as Map<String, dynamic>;
+        return;
+      }
+      final disk = await fs.readStringIfExists(packagePath);
+      if (disk != null) {
+        _bibleCache[version] = json.decode(disk) as Map<String, dynamic>;
+        return;
+      }
+    }
+
+    final assetPath = _bundledAssets[version];
     if (assetPath == null) {
-      throw ArgumentError.value(
-          version, 'version', 'Unsupported Bible version');
+      // Version is not bundled and not installed — callers treat empty cache
+      // as "no books" instead of crashing the UI.
+      debugPrint('Bible version not installed: $version');
+      return;
     }
     final jsonString = await rootBundle.loadString(assetPath);
     _bibleCache[version] = json.decode(jsonString) as Map<String, dynamic>;
+  }
+
+  void invalidateCache([String? version]) {
+    if (version == null) {
+      _bibleCache.clear();
+      _chapterCache.clear();
+      _searchIndexes.clear();
+      return;
+    }
+    _bibleCache.remove(version);
+    _chapterCache.removeWhere((key, _) => key.startsWith('$version-'));
+    _searchIndexes.remove(version);
   }
 }

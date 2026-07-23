@@ -21,7 +21,7 @@ class ParallelReadingProvider extends ChangeNotifier {
 
   Future<void> initialize() async {
     try {
-      _available = (await _bibleService.getBooks('AMH')).isNotEmpty;
+      _available = _bibleService.availableVersions.contains('AMH');
     } catch (_) {
       _available = false;
     }

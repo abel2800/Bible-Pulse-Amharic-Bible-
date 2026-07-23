@@ -202,6 +202,21 @@ class AudioPlayerBottomSheet extends StatelessWidget {
                     ),
                   ],
                 ),
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 8,
+                  alignment: WrapAlignment.center,
+                  children: [
+                    for (final rate in AudioService.preferredSpeeds)
+                      ChoiceChip(
+                        label: Text(
+                          '${rate.toStringAsFixed(rate % 1 == 0 ? 0 : 2)}×',
+                        ),
+                        selected: (audioService.speed - rate).abs() < 0.01,
+                        onSelected: (_) => audioService.setSpeed(rate),
+                      ),
+                  ],
+                ),
                 if (audioService.enabled) ...[
                   const SizedBox(height: 20),
                   Consumer<AudioDownloadProvider>(

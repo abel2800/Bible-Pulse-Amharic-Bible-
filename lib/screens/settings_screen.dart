@@ -2,13 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../config/app_capabilities.dart';
+import '../l10n/app_localizations.dart';
 import '../models/color_theme.dart';
 import '../providers/color_theme_provider.dart';
 import '../providers/font_settings_provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/audio_download_provider.dart';
+import '../providers/audio_store_provider.dart';
 import '../providers/bible_provider.dart';
+import '../providers/bible_store_provider.dart';
 import '../providers/reminder_provider.dart';
+import '../providers/user_preferences_provider.dart';
 import '../utils/app_theme.dart';
 import '../widgets/design/bp_widgets.dart';
 
@@ -21,10 +25,14 @@ class SettingsScreen extends StatelessWidget {
     final readerTheme = context.watch<ColorThemeProvider>();
     final fonts = context.watch<FontSettingsProvider>();
     final capabilities = context.watch<AppCapabilities>();
-    final amharic = appTheme.locale.languageCode == 'am';
+    final prefs = context.watch<UserPreferencesProvider>();
+    final bibleStore = context.watch<BibleStoreProvider>();
+    final audioStore = context.watch<AudioStoreProvider>();
+    final bible = context.watch<BibleProvider>();
+    final l10n = AppLocalizations.of(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final ink = isDark ? AppTheme.inkDark : AppTheme.ink;
-
+    final amharic = prefs.appLanguageCode == 'am';
     String text(String english, String amharicText) =>
         amharic ? amharicText : english;
 
@@ -42,20 +50,20 @@ class SettingsScreen extends StatelessWidget {
                     if (Navigator.of(context).canPop()) ...[
                       BpIconButton(
                         icon: Icons.arrow_back_ios_new_rounded,
-                        tooltip: 'Back',
+                        tooltip: l10n.close,
                         onPressed: () => Navigator.pop(context),
                       ),
                       const SizedBox(width: 8),
                     ],
                     Text(
-                      text('Settings', 'ቅንብሮች'),
+                      l10n.settings,
                       style: AppTheme.brandTitle(fontSize: 22, color: ink),
                     ),
                   ],
                 ),
                 const SizedBox(height: 24),
                 _SettingsSection(
-                  header: text('Appearance', 'ገጽታ'),
+                  header: l10n.appearance,
                   children: [
                     SegmentedButton<ThemeMode>(
                       showSelectedIcon: false,
@@ -63,17 +71,17 @@ class SettingsScreen extends StatelessWidget {
                         ButtonSegment(
                           value: ThemeMode.system,
                           icon: const Icon(Icons.brightness_auto_rounded),
-                          label: Text(text('System', 'የስርዓት')),
+                          label: Text(l10n.system),
                         ),
                         ButtonSegment(
                           value: ThemeMode.light,
                           icon: const Icon(Icons.light_mode_rounded),
-                          label: Text(text('Light', 'ብርሃን')),
+                          label: Text(l10n.light),
                         ),
                         ButtonSegment(
                           value: ThemeMode.dark,
                           icon: const Icon(Icons.dark_mode_rounded),
-                          label: Text(text('Dark', 'ጨለማ')),
+                          label: Text(l10n.dark),
                         ),
                       ],
                       selected: {appTheme.themeMode},
@@ -83,48 +91,181 @@ class SettingsScreen extends StatelessWidget {
                   ],
                 ),
                 _SettingsSection(
-                  header: text('Language', 'ቋንቋ'),
+                  header: l10n.appLanguage,
                   children: [
+                    Text(
+                      l10n.preferredLanguageSubtitle,
+                      style: AppTheme.ui(
+                        fontSize: 12.5,
+                        color: isDark ? AppTheme.inkSoftDark : AppTheme.inkSoft,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
                     RadioGroup<String>(
-                      groupValue: appTheme.locale.languageCode,
-                      onChanged: (value) {
-                        if (value != null) {
-                          appTheme.setLocale(Locale(value));
-                        }
+                      groupValue: prefs.appLanguageCode,
+                      onChanged: (value) async {
+                        if (value == null) return;
+                        await prefs.setAppLanguage(value);
+                        await appTheme.setLocale(Locale(value));
+                        if (!context.mounted) return;
+                        final hasScripture = bibleStore.installed.values
+                            .any((item) => item.language == value);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              hasScripture
+                                  ? l10n.scriptureLanguageNote
+                                  : l10n.noScriptureForLanguage,
+                            ),
+                            action: SnackBarAction(
+                              label: l10n.openBibleStore,
+                              onPressed: () => Navigator.pushNamed(
+                                context,
+                                '/bible_store',
+                              ),
+                            ),
+                          ),
+                        );
                       },
                       child: _ConnectedSet(
                         children: [
-                          _SetRow(
-                            position: _RowPosition.first,
-                            child: RadioListTile<String>(
-                              contentPadding:
-                                  const EdgeInsets.symmetric(horizontal: 14),
-                              value: 'en',
-                              title: Text(
-                                'English',
-                                style: AppTheme.ui(fontSize: 14, color: ink),
+                          for (final entry in [
+                            ('en', l10n.english),
+                            ('am', l10n.amharic),
+                            ('om', l10n.afaanOromo),
+                            ('ti', l10n.tigrinya),
+                            ('so', l10n.somali),
+                          ].asMap().entries)
+                            _SetRow(
+                              position: entry.key == 0
+                                  ? _RowPosition.first
+                                  : entry.key == 4
+                                      ? _RowPosition.last
+                                      : _RowPosition.middle,
+                              child: RadioListTile<String>(
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                ),
+                                value: entry.value.$1,
+                                title: Text(
+                                  entry.value.$2,
+                                  style:
+                                      AppTheme.ui(fontSize: 14, color: ink),
+                                ),
                               ),
                             ),
-                          ),
-                          _SetRow(
-                            position: _RowPosition.last,
-                            child: RadioListTile<String>(
-                              contentPadding:
-                                  const EdgeInsets.symmetric(horizontal: 14),
-                              value: 'am',
-                              title: Text(
-                                'አማርኛ',
-                                style: AppTheme.ui(fontSize: 14, color: ink),
-                              ),
-                            ),
-                          ),
                         ],
                       ),
                     ),
                   ],
                 ),
                 _SettingsSection(
-                  header: text('Reader theme', 'የንባብ ገጽታ'),
+                  header: l10n.preferredBible,
+                  children: [
+                    Text(
+                      l10n.preferredBibleSubtitle,
+                      style: AppTheme.ui(
+                        fontSize: 12.5,
+                        color: isDark ? AppTheme.inkSoftDark : AppTheme.inkSoft,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      l10n.scriptureLanguageNote,
+                      style: AppTheme.ui(
+                        fontSize: 12.5,
+                        color: isDark ? AppTheme.inkSoftDark : AppTheme.inkSoft,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(
+                        bibleStore.catalog
+                                .where((p) =>
+                                    p.versionId == prefs.preferredBibleVersionId)
+                                .map((p) => p.name)
+                                .firstOrNull ??
+                            prefs.preferredBibleVersionId,
+                        style: AppTheme.ui(
+                          fontSize: 14,
+                          weight: FontWeight.w600,
+                          color: ink,
+                        ),
+                      ),
+                      subtitle: Text(
+                        bible.currentVersion,
+                        style: AppTheme.ui(
+                          fontSize: 12,
+                          color: isDark
+                              ? AppTheme.inkSoftDark
+                              : AppTheme.inkSoft,
+                        ),
+                      ),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => Navigator.pushNamed(context, '/bible_store'),
+                    ),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton(
+                        onPressed: () =>
+                            Navigator.pushNamed(context, '/bible_store'),
+                        child: Text(l10n.openBibleStore),
+                      ),
+                    ),
+                  ],
+                ),
+                _SettingsSection(
+                  header: l10n.preferredAudio,
+                  children: [
+                    Text(
+                      l10n.preferredAudioSubtitle,
+                      style: AppTheme.ui(
+                        fontSize: 12.5,
+                        color: isDark ? AppTheme.inkSoftDark : AppTheme.inkSoft,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      l10n.audioSetupNote,
+                      style: AppTheme.ui(
+                        fontSize: 12.5,
+                        color: isDark ? AppTheme.inkSoftDark : AppTheme.inkSoft,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(
+                        prefs.preferredAudioPackageId.isEmpty
+                            ? l10n.notSet
+                            : (audioStore.catalog
+                                    .where((p) =>
+                                        p.id == prefs.preferredAudioPackageId)
+                                    .map((p) => p.name)
+                                    .firstOrNull ??
+                                prefs.preferredAudioPackageId),
+                        style: AppTheme.ui(
+                          fontSize: 14,
+                          weight: FontWeight.w600,
+                          color: ink,
+                        ),
+                      ),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => Navigator.pushNamed(context, '/audio_store'),
+                    ),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton(
+                        onPressed: () =>
+                            Navigator.pushNamed(context, '/audio_store'),
+                        child: Text(l10n.openAudioStore),
+                      ),
+                    ),
+                  ],
+                ),
+                _SettingsSection(
+                  header: l10n.readerTheme,
                   children: [
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
@@ -287,19 +428,13 @@ class _SetRow extends StatelessWidget {
         radius = BorderRadius.zero;
     }
 
-    return Container(
-      decoration: BoxDecoration(
-        color: surface,
+    return Material(
+      color: surface,
+      shape: RoundedRectangleBorder(
         borderRadius: radius,
-        border: Border(
-          top: position == _RowPosition.first || position == _RowPosition.only
-              ? BorderSide(color: border)
-              : BorderSide.none,
-          left: BorderSide(color: border),
-          right: BorderSide(color: border),
-          bottom: BorderSide(color: border),
-        ),
+        side: BorderSide(color: border),
       ),
+      clipBehavior: Clip.antiAlias,
       child: child,
     );
   }
