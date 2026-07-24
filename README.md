@@ -388,7 +388,7 @@ GitHub Actions (`.github/workflows/ci.yml`) runs on every push and pull request:
 |---|---|
 | **verify** | Format, `flutter analyze`, content manifest, unit/widget/accessibility/migration tests, web release build |
 | **windows** | Golden tests + Windows release build |
-| **android** | Unsigned APK + App Bundle → artifact `android-unsigned-verification` |
+| **android** | Debug-signed APK + App Bundle → artifact `android-verification-apk` (sideload the `.apk`, not the `.aab`) |
 | **apple** | iOS (`--no-codesign`) + macOS release |
 | **linux** | Linux release bundle |
 | **firebase-emulators** | Firestore rules (Node 24, Java 21) |
@@ -407,9 +407,10 @@ npx firebase-tools@latest emulators:exec --only firestore "npm --prefix firebase
 
 ## Release and signing
 
-CI artifacts are **unsigned verification builds**, not store packages.
+CI artifacts are **verification builds**, not Play Store packages.
 
-- Android release signing activates only when `BIBLEPULSE_ANDROID_KEYSTORE` and related passwords/alias are set.
+- Without release keystore secrets, the Android APK is **debug-signed** so it installs on devices for testing. With `BIBLEPULSE_ANDROID_*` set, it uses your release keystore.
+- From GitHub Actions: download **`android-verification-apk`**, unzip, install **`app-release.apk`**. Do not try to install the `.aab` or the zip itself.
 - Windows post-build signing is documented in the integrations guide.
 - Confirm ownership of `app.biblepulse.reader` before store submission.
 - Do not commit keystores, API keys, or Firebase production secrets.
@@ -418,7 +419,7 @@ See [`docs/INTEGRATIONS_AND_RELEASE.md`](docs/INTEGRATIONS_AND_RELEASE.md).
 
 ### Security posture
 
-- Android release builds do not fall back to debug signing.
+- Publishable Android builds require explicit `BIBLEPULSE_ANDROID_*` keystore env vars (`./gradlew verifyReleaseSigning`). CI without those secrets uses debug signing only so verification APKs can be sideloaded.
 - Firestore rules isolate study data per authenticated owner.
 - Audio accepts only configured HTTPS media hosts and download-permitted filesets (Bible Brain path).
 - Exact-alarm Android permissions are not requested.

@@ -80,13 +80,16 @@ alarm permission. Notification taps currently open the app without deep links.
 
 CI runs formatting, strict analysis, content-manifest validation, Flutter tests,
 web release compilation, Firestore emulator tests, browser integration, and
-unsigned verification builds for Android, iOS, macOS, Linux, and Windows.
+verification builds for Android, iOS, macOS, Linux, and Windows.
 
-CI artifacts are not store-ready signed releases.
+CI Android artifacts are **debug-signed** when release keystore secrets are
+absent, so you can sideload `app-release.apk` onto a phone for testing. They
+are **not** Play Store–ready. Download the Actions artifact zip, unzip it, and
+install **`app-release.apk` only** — an `.aab` cannot be installed directly.
 
 ## Signing
 
-Android release signing is enabled only when all variables are present:
+Android release (Play Store) signing is enabled only when all variables are present:
 
 ```text
 BIBLEPULSE_ANDROID_KEYSTORE

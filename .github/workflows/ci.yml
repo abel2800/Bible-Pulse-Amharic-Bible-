@@ -45,13 +45,15 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
       - run: flutter pub get
-      - name: Build unsigned Android verification artifacts
+      - name: Build Android verification APK and App Bundle
         run: |
           flutter build apk --release
           flutter build appbundle --release
       - uses: actions/upload-artifact@v4
         with:
-          name: android-unsigned-verification
+          # Debug-signed when no release keystore secrets are configured.
+          # Install app-release.apk from the zip — do not install the .aab.
+          name: android-verification-apk
           path: |
             build/app/outputs/flutter-apk/app-release.apk
             build/app/outputs/bundle/release/app-release.aab

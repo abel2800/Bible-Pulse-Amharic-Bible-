@@ -51,7 +51,14 @@ android {
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.findByName("release")
+            // Store/publish builds must set BIBLEPULSE_ANDROID_* env vars.
+            // Without them, sign with the debug keystore so CI/sideload APKs
+            // install on devices ("package appears to be invalid" = unsigned).
+            signingConfig = if (releaseSigningReady) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
     }
 }
