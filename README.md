@@ -1,15 +1,18 @@
 # BiblePulse
 
-**Offline-first Bible reading and study for English readers — built with Flutter for Android, iOS, web, Windows, macOS, and Linux.**
+**Offline-first Bible reading and study — built with Flutter for Android, iOS, web, Windows, macOS, and Linux.**
 
-BiblePulse is a focused Scripture reader with real local persistence, adaptive navigation, and a single coherent design system. Features that need licensed content, API credentials, or production cloud configuration stay hidden until those dependencies are in place. What you see in the app is what actually works.
+BiblePulse is a focused Scripture reader with real local persistence, adaptive navigation, and one coherent design system. Core reading works without network. Features that need licensed content, API credentials, or production cloud configuration stay hidden until those dependencies are real. What you see in the app is what actually works.
+
+> *Scripture, illuminated.*
 
 | | |
 |---|---|
 | **Package** | `bible_pulse` |
 | **App ID** | `app.biblepulse.reader` |
 | **Version** | `1.0.0+1` |
-| **Flutter** | 3.44.1 (CI-pinned) |
+| **Flutter** | 3.44.1 (CI-pinned; pubspec requires `>=3.27.0`) |
+| **Dart** | `>=3.6.0 <4.0.0` |
 | **Repository** | [abel2800/Bible-Pulse-Amharic-Bible-](https://github.com/abel2800/Bible-Pulse-Amharic-Bible-) |
 
 ---
@@ -19,15 +22,16 @@ BiblePulse is a focused Scripture reader with real local persistence, adaptive n
 1. [What you get today](#what-you-get-today)
 2. [Platforms](#platforms)
 3. [Product tour](#product-tour)
-4. [Design system](#design-system)
-5. [Architecture](#architecture)
-6. [Project structure](#project-structure)
-7. [Getting started](#getting-started)
-8. [Gated integrations](#gated-integrations)
-9. [Content and licensing](#content-and-licensing)
-10. [Testing and CI](#testing-and-ci)
-11. [Release and signing](#release-and-signing)
-12. [Documentation](#documentation)
+4. [Daily engagement](#daily-engagement)
+5. [Design system](#design-system)
+6. [Architecture](#architecture)
+7. [Project structure](#project-structure)
+8. [Getting started](#getting-started)
+9. [Gated integrations](#gated-integrations)
+10. [Content and licensing](#content-and-licensing)
+11. [Testing and CI](#testing-and-ci)
+12. [Release and signing](#release-and-signing)
+13. [Documentation](#documentation)
 
 ---
 
@@ -36,30 +40,31 @@ BiblePulse is a focused Scripture reader with real local persistence, adaptive n
 ### Scripture and reading
 
 - **World English Bible (WEB)** — full 66-book Protestant edition, bundled offline from eBible.org (public domain).
-- Book and chapter navigation with last-read restoration.
-- Exact scroll-to-verse when opening a search result.
-- Date-rotating verse of the day from verified WEB text.
-- Independent reader themes (Light, Sepia, Dark, True Black, Blue Night, Forest) that do not follow the app chrome theme.
-- Persistent font size and line spacing for Scripture text.
+- **King James Version (KJV)** and **American Standard Version (ASV)** — public-domain texts installable from the in-app **Bible Store**.
+- Book / chapter navigation with last-read restoration and exact scroll-to-verse from search.
+- Version picker and unified book → chapter bottom sheet.
+- Reader themes: **Light**, **Dark** (navy `#10182A`), and **Eye Comfort** (legacy Sepia / parchment / night themes map into these).
+- Persistent font size, line spacing, and font family for Scripture text.
+- Strong’s markup stripped from display text for clean reading.
 
-### Search
+### Search (Discover)
 
-- Unicode indexed search with bounded results.
+- Unicode indexed search with bounded results and Old / New / All filters.
 - **SQLite FTS5** on Android, iOS, and macOS.
 - **In-memory token index** on web, Windows, and Linux.
 
-### Study tools
+### Study tools (Plans tab)
 
 Tap or long-press any verse to:
 
 | Action | Behavior |
 |---|---|
-| Highlight | One color per verse; persists until you remove it |
+| Highlight | One color per verse; persists until removed |
 | Note | Create or update a note on that verse |
 | Bookmark | Add or remove a bookmark |
 | Copy / Share | Clipboard and system share sheet |
-| Verse card | Open branded image export for that verse |
-| Cross-references | Show verified related verses when available |
+| Verse card / wallpaper | Branded image export when the platform allows |
+| Cross-references | Related verses when available |
 
 Guest study data is stored locally:
 
@@ -68,30 +73,40 @@ Guest study data is stored locally:
 
 When cloud sync is configured, deletion uses tombstones and last-write-wins conflict resolution.
 
+### Audio
+
+- **Default (no API keys):** public-domain **WEB Henson** narration via eBible HTTPS — stream and chapter cache from the **Audio Store**.
+- **Optional Bible Brain:** stream / offline download with host allowlisting when `BIBLE_BRAIN_*` dart-defines are set.
+- Unified audio bar on the reader when a session is active; Wi‑Fi-only downloads and cache controls in Settings.
+
 ### Engagement
 
 - Reading streaks with **one grace day** per seven-day window.
+- Milestone titles (“Week warrior”, “Month of devotion”, …) and progress toward the next badge.
+- Celebration snackbar when a new reading day is sealed.
 - **On this day** memories from past-year highlights and notes.
 - Private **prayer journal** (local, optionally linked to a verse, with answered toggle).
-- Branded **verse cards** (square / feed / status aspect ratios) with save and share.
+- Branded **verse cards** (square / feed / status) with save and share on mobile.
 
 ### Navigation and locale
 
-- Adaptive shell: bottom navigation on phones, navigation rail on tablet/desktop.
+- Adaptive shell: bottom navigation on phones, navigation rail on tablet/desktop (≥ 720px).
+- Tabs: **Home · Bible · Plans · Discover · You**.
 - App light / dark / system themes.
-- English and Amharic **UI** locale selection (Amharic Scripture text is not bundled yet — see [Content and licensing](#content-and-licensing)).
+- UI locales: **English, Amharic, Afaan Oromo, Tigrinya, Somali**.  
+  Amharic and other non-English **Scripture** texts are catalog placeholders until redistribution rights are approved — see [Content and licensing](#content-and-licensing).
 
 ### Capability-gated (implemented, off until configured)
 
-These ship in code and activate only when credentials, licenses, or content exist:
-
-- Parallel Amharic / English reading
-- Bible Brain audio (stream, offline download, karaoke-style verse sync)
-- Firebase auth and study sync
-- Private reading groups
-- Community feed with moderation hooks
-- Devotional, reading-plan, and hymn catalogs
-- Theme-based verse reminders (Android / iOS)
+| Feature | Turns on when |
+|---|---|
+| Parallel Amharic / English reading | Licensed Amharic text + parallel UI |
+| Bible Brain audio beyond public-domain WEB | `BIBLE_BRAIN_*` defines |
+| Firebase auth and study sync | `FIREBASE_*` defines |
+| Private reading groups / community feed | Cloud + `BIBLEPULSE_ENABLE_COMMUNITY` |
+| Devotional, reading-plan, and hymn catalogs | Approved entries in the content manifest |
+| Wallpaper export / gallery save | Android / iOS |
+| Daily verse + streak notifications | Android / iOS, user enables reminders |
 
 ---
 
@@ -99,14 +114,14 @@ These ship in code and activate only when credentials, licenses, or content exis
 
 | Platform | Local DB | Notifications | Gallery export | Audio* | Cloud* |
 |---|---|---|---|---|---|
-| Android | SQLite | Yes | Yes | Gated | Gated |
-| iOS | SQLite | Yes | Yes | Gated | Gated |
-| macOS | SQLite | — | — | Gated | Gated |
-| Windows | Prefs | — | — | Gated | Gated |
-| Linux | Prefs | — | — | Gated | Gated |
-| Web | Prefs | — | — | Gated | Gated |
+| Android | SQLite | Yes | Yes | Yes (WEB Henson; BB gated) | Gated |
+| iOS | SQLite | Yes | Yes | Yes (WEB Henson; BB gated) | Gated |
+| macOS | SQLite | — | — | Yes (WEB Henson; BB gated) | Gated |
+| Windows | Prefs | — | — | Yes (WEB Henson; BB gated) | Gated |
+| Linux | Prefs | — | — | Yes (WEB Henson; BB gated) | Gated |
+| Web | Prefs | — | — | Yes (WEB Henson; BB gated) | Gated |
 
-\*Audio and cloud require build-time configuration. See [Gated integrations](#gated-integrations).
+\*Bible Brain and Firebase require build-time configuration. Public-domain WEB Henson audio works without keys.
 
 Minimum iOS deployment target: **15.0** (required by current Firebase Flutter plugins).
 
@@ -117,20 +132,38 @@ Minimum iOS deployment target: **15.0** (required by current Firebase Flutter pl
 | Screen | Role |
 |---|---|
 | **Bootstrap / splash** | Readiness-driven startup (providers + assets). No fixed delay. |
-| **Home (dashboard)** | Greeting, verse of the day, streak / memories, quick actions |
-| **Bible** | Adaptive reader with themes, verse actions, optional parallel / audio UI |
-| **Search** | Indexed Scripture search → jump to exact verse |
-| **Study** | Highlights, notes, and bookmarks |
-| **Settings** | Appearance, locale, fonts, audio cache (when enabled), theme reminders |
+| **Home** | Time-of-day greeting, streak card, verse of the day, continue reading / study shortcuts, drawer |
+| **Bible** | Chapter reader, book/version chips, verse actions, optional audio bar |
+| **Plans** | Highlights, notes, and bookmarks |
+| **Discover** | Indexed Scripture search → jump to exact verse |
+| **You (Settings)** | Appearance, UI language, preferred Bible/audio, reader theme & fonts, reminders, offline audio cache |
+| **Bible Store / Audio Store** | Install public-domain texts and audio packages |
 | **Prayer journal** | Private prayers linked to Scripture |
-| **Verse card** | Generate and share branded images |
+| **Verse card / wallpaper** | Generate and share branded images (mobile) |
 | **Auth / groups / community / catalogs** | Visible only when capabilities allow |
+
+---
+
+## Daily engagement
+
+BiblePulse treats daily Scripture as a habit loop, not a guilt trip.
+
+| Piece | Behavior |
+|---|---|
+| **Verse of the Day** | Curated, date-rotating WEB verse on Home |
+| **Streak** | Opens a chapter → seals today; one missed day of grace per week |
+| **Home streak card** | Title, encouragement, progress to next milestone, “Keep the flame alive” CTA |
+| **Morning notification** | Verse of the Day (default ~08:00 local) |
+| **Evening notification** | Streak keep-alive / appreciation (~19:00) |
+| **Settings** | **Verse + streak reminders** (Android / iOS); permission asked when enabling |
+
+On web and desktop, in-app streak UI and celebrations still work; push notifications stay off.
 
 ---
 
 ## Design system
 
-Illuminated-manuscript language: warm parchment, gold rubrication, vermilion accents, and serif Scripture. Light and dark modes are designed together.
+Illuminated-manuscript language: warm parchment, gold rubrication, and navy dark surfaces. Light and dark modes are designed together.
 
 ### Brand accents
 
@@ -138,8 +171,8 @@ Illuminated-manuscript language: warm parchment, gold rubrication, vermilion acc
 |---|---|---|
 | Gold | `#C08A28` | Primary actions, active nav, verse numbers |
 | Soft gold | `#E8C766` | Gradients and dark-mode gold |
-| Vermilion | `#A83232` | Streaks, destructive actions |
-| Teal | `#1E7F72` | Secondary accents, progress |
+| Vermilion | `#A83232` | Destructive actions |
+| Teal | `#1E7F72` | Progress, “today counts” affirmations |
 
 ### Surfaces
 
@@ -158,10 +191,10 @@ Illuminated-manuscript language: warm parchment, gold rubrication, vermilion acc
 - **Brand / titles:** Fraunces  
 - **Scripture:** Source Serif 4  
 - **UI chrome:** Inter  
-- **Amharic:** Noto Serif Ethiopic  
+- **Ethiopic UI:** Noto Serif Ethiopic  
 - Card radius: 16 · Controls: 10–12 · Icon buttons: 34×34 · Minimum touch target: 48×48
 
-Reader presets (Light, Sepia, Dark, True Black, Blue Night, Forest) stay independent of app light/dark mode.
+Reader presets stay independent of app light/dark mode where configured; Dark reader aligns with the home navy surface.
 
 ---
 
@@ -193,11 +226,12 @@ UI (screens / widgets)
 |---|---|
 | State | `provider` |
 | Local DB | `sqflite` |
+| Preferences | `shared_preferences`, `path_provider` |
 | Audio | `just_audio`, `audio_session` |
-| Notifications | `flutter_local_notifications` |
+| Notifications | `flutter_local_notifications`, `timezone`, `flutter_timezone` |
 | Cloud | `firebase_core`, `firebase_auth`, `cloud_firestore` |
 | Networking | `http`, `connectivity_plus` |
-| Images / share | `screenshot`, `image_gallery_saver_plus`, `share_plus` |
+| Images / share | `screenshot`, `image_gallery_saver_plus`, `share_plus`, `permission_handler` |
 | Fonts | `google_fonts` |
 
 ---
@@ -207,28 +241,28 @@ UI (screens / widgets)
 ```text
 lib/
   config/          # Cloud, audio, and capability flags
-  l10n/            # English / Amharic UI strings
+  l10n/            # en / am / om / ti / so UI strings
   models/          # Immutable domain types
-  providers/       # Presentation state
+  providers/       # Presentation state (Bible, study, streaks, reminders, …)
   repositories/    # Community repository boundary
   screens/         # Adaptive shell and feature screens
-  services/        # Bible, search, DB, audio, sync, catalogs
-  utils/           # Theme and shared helpers
-  widgets/         # Reusable UI (drawer, verse card, sheets)
+  services/        # Bible, search, DB, audio, sync, catalogs, notifications
+  utils/           # Theme, streak copy, greetings, scripture cleanup
+  widgets/         # Drawer, verse card, sheets, design system
 assets/
-  bible/web.json               # Bundled WEB Scripture
-  content_manifest.json        # Rights + SHA-256 gate
-  biblepulse_app_icon.png
+  bible/           # web.json, kjv.json, asv.json
+  catalog/         # Bible + audio catalogs, Henson manifest
+  content_manifest.json
 docs/
-  CONTENT_SOURCES.md           # Provenance and license notes
-  INTEGRATIONS_AND_RELEASE.md  # Firebase, audio, signing
+  CONTENT_SOURCES.md
+  INTEGRATIONS_AND_RELEASE.md
 tools/
-  content/                     # Manifest validator
-  scripture/                   # WEB fetch / USFM conversion
-test/                          # Unit, widget, accessibility, golden, migration
-integration_test/              # Browser smoke test
-firebase-tests/                # Firestore security-rule tests
-.github/workflows/ci.yml       # Multi-platform CI
+  content/         # Manifest validator
+  scripture/       # WEB fetch / USFM conversion
+test/              # Unit, widget, accessibility, golden, migration
+integration_test/  # Browser smoke test
+firebase-tests/    # Firestore security-rule tests
+.github/workflows/ci.yml
 ```
 
 ---
@@ -237,9 +271,10 @@ firebase-tests/                # Firestore security-rule tests
 
 ### Requirements
 
-- Flutter **3.44.1** or a compatible stable release  
-- Dart SDK compatible with `>=3.6.0 <4.0.0`  
-- Python 3 only if regenerating Scripture assets  
+- Flutter **3.44.1** (or a compatible stable release matching CI)
+- Dart SDK `>=3.6.0 <4.0.0`
+- Python 3 only if regenerating Scripture assets
+- Android Studio / SDK for local APK builds
 
 ### Install
 
@@ -250,9 +285,15 @@ flutter pub get
 ### Run
 
 ```powershell
-flutter run -d chrome
-# or: windows / android / ios / macos / linux device
+# Chrome (recommended flag avoids CanvasKit CDN failures)
+flutter run -d chrome --no-web-resources-cdn
+
+# Or any other device
+flutter run -d windows
+flutter run -d android
 ```
+
+VS Code / Cursor: use the **BiblePulse (Chrome)** launch config in `.vscode/launch.json` (includes `--no-web-resources-cdn`).
 
 ### Local quality gate
 
@@ -264,6 +305,15 @@ flutter test --exclude-tags golden
 flutter test test/goldens
 flutter build web --release --no-wasm-dry-run
 ```
+
+### Release APK (local)
+
+```powershell
+flutter build apk --release
+# Output: build/app/outputs/flutter-apk/app-release.apk
+```
+
+CI also uploads an unsigned APK + AAB as the **android-unsigned-verification** artifact on every push.
 
 ### Rebuild WEB Scripture (optional)
 
@@ -304,11 +354,11 @@ BIBLE_BRAIN_BIBLE_IDS_JSON={"WEB":"approved-bible-id"}
 BIBLE_BRAIN_MEDIA_HOSTS=approved.cdn.host
 ```
 
-Filesets are discovered from the API (not hardcoded). Only filesets listed for your key under `/download/list` may be cached for offline use. HTTPS host allowlisting is enforced. Settings expose Wi-Fi-only downloads, progress, pause, cache size, and clear cache.
+Without these defines, BiblePulse still uses **public-domain WEB Henson** audio. Bible Brain filesets are discovered from the API; only download-listed filesets may be cached. HTTPS host allowlisting is enforced.
 
 ### Notifications
 
-Permission is requested only after the user picks a theme reminder in Settings (Android / iOS). Schedules use inexact alarms — no exact-alarm permission.
+Permission is requested when the user enables **Verse + streak reminders** in Settings (Android / iOS). Schedules use inexact alarms — no exact-alarm permission.
 
 ---
 
@@ -319,8 +369,11 @@ Only content with verified redistribution terms may ship. Every payload must app
 | Content | Status |
 |---|---|
 | World English Bible | **Bundled** — public domain (eBible `engwebp`) |
-| Amharic Scripture | **Not bundled** — eBible Amharic NT is copyrighted UBS/BSE text with non-commercial limits; needs written permission for store distribution |
-| Audio | Implemented; needs Bible Brain approval + rights record |
+| King James Version | **Store install** — public domain |
+| American Standard Version | **Store install** — public domain |
+| WEB Henson audio | **Default stream/cache** — public domain (eBible) |
+| Amharic / Oromo / Tigrinya / Somali Scripture | **Not bundled** — catalog placeholders; need written redistribution rights |
+| Bible Brain audio | Implemented behind dart-defines + rights record |
 | Devotionals / plans / hymns | Catalog plumbing ready; no licensed payloads bundled |
 
 Details: [`docs/CONTENT_SOURCES.md`](docs/CONTENT_SOURCES.md).
@@ -329,13 +382,13 @@ Details: [`docs/CONTENT_SOURCES.md`](docs/CONTENT_SOURCES.md).
 
 ## Testing and CI
 
-GitHub Actions (`.github/workflows/ci.yml`) runs on every push:
+GitHub Actions (`.github/workflows/ci.yml`) runs on every push and pull request:
 
 | Job | Checks |
 |---|---|
 | **verify** | Format, `flutter analyze`, content manifest, unit/widget/accessibility/migration tests, web release build |
 | **windows** | Golden tests + Windows release build |
-| **android** | Unsigned APK + App Bundle |
+| **android** | Unsigned APK + App Bundle → artifact `android-unsigned-verification` |
 | **apple** | iOS (`--no-codesign`) + macOS release |
 | **linux** | Linux release bundle |
 | **firebase-emulators** | Firestore rules (Node 24, Java 21) |
@@ -367,7 +420,7 @@ See [`docs/INTEGRATIONS_AND_RELEASE.md`](docs/INTEGRATIONS_AND_RELEASE.md).
 
 - Android release builds do not fall back to debug signing.
 - Firestore rules isolate study data per authenticated owner.
-- Audio accepts only configured HTTPS media hosts and download-permitted filesets.
+- Audio accepts only configured HTTPS media hosts and download-permitted filesets (Bible Brain path).
 - Exact-alarm Android permissions are not requested.
 - Content checksum gate prevents silent asset substitution.
 
@@ -384,10 +437,15 @@ See [`docs/INTEGRATIONS_AND_RELEASE.md`](docs/INTEGRATIONS_AND_RELEASE.md).
 
 ## License and contribution
 
-Application code in this repository is provided for development of BiblePulse. Bundled Scripture text remains under its upstream terms (WEB: public domain). Do not add translations, devotionals, hymns, or audio without updating the content manifest and documenting redistribution rights.
+Application code in this repository is provided for development of BiblePulse. Bundled Scripture and public-domain audio remain under their upstream terms (WEB / KJV / ASV / Henson: public domain). Do not add translations, devotionals, hymns, or proprietary audio without updating the content manifest and documenting redistribution rights.
 
-When opening a pull request, keep changes focused, preserve the fail-closed capability model, and ensure `flutter analyze` and tests pass on application-owned code.
+When opening a pull request:
+
+- Keep changes focused.
+- Preserve the fail-closed capability model.
+- Run format, analyze, and tests on application-owned code.
+- Do not add AI co-author trailers to commits.
 
 ---
 
-**BiblePulse** — read Scripture offline, study with intention, unlock richer features only when the rights and credentials are real.
+**BiblePulse** — read Scripture offline, keep a joyful daily streak, and unlock richer features only when the rights and credentials are real.
