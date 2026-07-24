@@ -98,7 +98,8 @@ class AppDrawer extends StatelessWidget {
               '/prayer_journal',
             ),
             if (capabilities.community)
-              _item(context, Icons.forum_outlined, l10n.community, '/community'),
+              _item(
+                  context, Icons.forum_outlined, l10n.community, '/community'),
             _item(
               context,
               Icons.wallpaper_rounded,

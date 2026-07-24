@@ -29,7 +29,8 @@ class AudioStoreProvider with ChangeNotifier {
     final raw = await rootBundle.loadString(_catalogAsset);
     final json = jsonDecode(raw) as Map<String, dynamic>;
     _catalog = (json['packages'] as List<dynamic>? ?? const [])
-        .map((e) => AudioPackageInfo.fromJson(Map<String, dynamic>.from(e as Map)))
+        .map((e) =>
+            AudioPackageInfo.fromJson(Map<String, dynamic>.from(e as Map)))
         .toList();
     final prefs = await SharedPreferences.getInstance();
     final saved = prefs.getString(_registryKey);
@@ -87,7 +88,8 @@ class AudioStoreProvider with ChangeNotifier {
   bool canActivate(AudioPackageInfo pkg) =>
       pkg.approved && (!pkg.requiresAudioConfig || audioConfigured);
 
-  Future<void> markInstalled(AudioPackageInfo pkg, {int chapters = 0, int bytes = 0}) async {
+  Future<void> markInstalled(AudioPackageInfo pkg,
+      {int chapters = 0, int bytes = 0}) async {
     _installed[pkg.id] = InstalledAudioPackage(
       packageId: pkg.id,
       bibleVersionId: pkg.bibleVersionId,

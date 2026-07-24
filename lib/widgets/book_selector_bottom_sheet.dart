@@ -6,8 +6,15 @@ import '../providers/bible_provider.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 
-/// Opens the book picker. Selecting a book loads chapter 1 via [BibleProvider].
-Future<void> showBookSelector(BuildContext context) {
+/// Opens the combined book + chapter picker.
+///
+/// Tapping a book expands its chapter grid inline, right under that book,
+/// the same way most Bible apps do it. No second sheet, no hidden gestures:
+/// pick the book, pick the number, done.
+Future<void> showBookSelector(
+  BuildContext context, {
+  bool jumpToCurrentBook = true,
+}) {
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
@@ -15,12 +22,15 @@ Future<void> showBookSelector(BuildContext context) {
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
     ),
-    builder: (_) => const BookSelectorBottomSheet(),
+    builder: (_) =>
+        BookSelectorBottomSheet(jumpToCurrentBook: jumpToCurrentBook),
   );
 }
 
 class BookSelectorBottomSheet extends StatefulWidget {
-  const BookSelectorBottomSheet({super.key});
+  const BookSelectorBottomSheet({super.key, this.jumpToCurrentBook = true});
+
+  final bool jumpToCurrentBook;
 
   @override
   State<BookSelectorBottomSheet> createState() =>
@@ -31,11 +41,21 @@ class _BookSelectorBottomSheetState extends State<BookSelectorBottomSheet>
     with SingleTickerProviderStateMixin {
   late final TabController _tabs;
   String _query = '';
+  int? _expandedBookId;
 
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: 2, vsync: this);
+    final bible = context.read<BibleProvider>();
+    final currentTestament = bible.selectedBook?.testament;
+    _tabs = TabController(
+      length: 2,
+      vsync: this,
+      initialIndex: currentTestament == 'NT' ? 1 : 0,
+    );
+    if (widget.jumpToCurrentBook) {
+      _expandedBookId = bible.selectedBook?.id;
+    }
   }
 
   @override
@@ -44,11 +64,15 @@ class _BookSelectorBottomSheetState extends State<BookSelectorBottomSheet>
     super.dispose();
   }
 
+  void _toggle(int bookId) {
+    setState(() => _expandedBookId = _expandedBookId == bookId ? null : bookId);
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = context.colors;
     final bible = context.watch<BibleProvider>();
-    final currentName = bible.selectedBook?.name ?? '';
+    final currentBookId = bible.selectedBook?.id;
 
     bool matches(BibleBook b) =>
         b.name.toLowerCase().contains(_query.toLowerCase());
@@ -59,8 +83,8 @@ class _BookSelectorBottomSheetState extends State<BookSelectorBottomSheet>
         bible.books.where((b) => b.testament == 'NT').where(matches).toList();
 
     return DraggableScrollableSheet(
-      initialChildSize: 0.75,
-      maxChildSize: 0.92,
+      initialChildSize: 0.85,
+      maxChildSize: 0.95,
       minChildSize: 0.5,
       expand: false,
       builder: (context, scrollController) {
@@ -89,9 +113,9 @@ class _BookSelectorBottomSheetState extends State<BookSelectorBottomSheet>
             ),
             TabBar(
               controller: _tabs,
-              labelColor: const Color(0xFFC08A28),
+              labelColor: AppBrand.gold,
               unselectedLabelColor: t.inkFaint,
-              indicatorColor: const Color(0xFFC08A28),
+              indicatorColor: AppBrand.gold,
               labelStyle: AppText.ui(context, size: 13, w: FontWeight.w700),
               tabs: const [
                 Tab(text: 'Old Testament'),
@@ -102,21 +126,27 @@ class _BookSelectorBottomSheetState extends State<BookSelectorBottomSheet>
               child: TabBarView(
                 controller: _tabs,
                 children: [
-                  _BookGrid(
+                  _BookChapterList(
                     books: ot,
-                    current: currentName,
+                    currentBookId: currentBookId,
+                    currentChapter: bible.selectedChapter,
+                    expandedBookId: _expandedBookId,
                     scrollController: scrollController,
-                    onSelect: (book) async {
-                      await bible.loadChapter(book.id, 1);
+                    onToggle: _toggle,
+                    onSelectChapter: (book, chapter) async {
+                      await bible.loadChapter(book.id, chapter);
                       if (context.mounted) Navigator.pop(context);
                     },
                   ),
-                  _BookGrid(
+                  _BookChapterList(
                     books: nt,
-                    current: currentName,
+                    currentBookId: currentBookId,
+                    currentChapter: bible.selectedChapter,
+                    expandedBookId: _expandedBookId,
                     scrollController: scrollController,
-                    onSelect: (book) async {
-                      await bible.loadChapter(book.id, 1);
+                    onToggle: _toggle,
+                    onSelectChapter: (book, chapter) async {
+                      await bible.loadChapter(book.id, chapter);
                       if (context.mounted) Navigator.pop(context);
                     },
                   ),
@@ -130,57 +160,141 @@ class _BookSelectorBottomSheetState extends State<BookSelectorBottomSheet>
   }
 }
 
-class _BookGrid extends StatelessWidget {
+/// A scrollable list of books. Tapping a book expands a chapter-number grid
+/// directly beneath it, in place, instead of opening another sheet.
+class _BookChapterList extends StatelessWidget {
   final List<BibleBook> books;
-  final String current;
+  final int? currentBookId;
+  final int currentChapter;
+  final int? expandedBookId;
   final ScrollController scrollController;
-  final Future<void> Function(BibleBook book) onSelect;
+  final void Function(int bookId) onToggle;
+  final Future<void> Function(BibleBook book, int chapter) onSelectChapter;
 
-  const _BookGrid({
+  const _BookChapterList({
     required this.books,
-    required this.current,
+    required this.currentBookId,
+    required this.currentChapter,
+    required this.expandedBookId,
     required this.scrollController,
-    required this.onSelect,
+    required this.onToggle,
+    required this.onSelectChapter,
   });
 
   @override
   Widget build(BuildContext context) {
     final t = context.colors;
-    return GridView.builder(
+
+    return ListView.builder(
       controller: scrollController,
-      padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        mainAxisSpacing: 10,
-        crossAxisSpacing: 10,
-        childAspectRatio: 2.6,
-      ),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       itemCount: books.length,
       itemBuilder: (context, i) {
         final book = books[i];
-        final selected = book.name == current;
-        return InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: () => onSelect(book),
-          child: Container(
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: selected ? const Color(0xFFC08A28) : t.surface,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: selected ? const Color(0xFFC08A28) : t.border,
-              ),
+        final isCurrent = book.id == currentBookId;
+        final isExpanded = book.id == expandedBookId;
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          decoration: BoxDecoration(
+            color: isExpanded ? t.surface2 : t.surface,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isCurrent ? AppBrand.gold : t.border,
+              width: isCurrent ? 1.4 : 1,
             ),
-            child: Text(
-              book.name,
-              textAlign: TextAlign.center,
-              style: AppText.ui(
-                context,
-                size: 13,
-                w: FontWeight.w600,
-                color: selected ? const Color(0xFF241804) : t.ink,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: () => onToggle(book.id),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          book.name,
+                          style: AppText.ui(
+                            context,
+                            size: 15,
+                            w: isCurrent ? FontWeight.w700 : FontWeight.w600,
+                            color: isCurrent ? AppBrand.gold : t.ink,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        '${book.chapters} ch',
+                        style: AppText.ui(context, size: 12, color: t.inkFaint),
+                      ),
+                      const SizedBox(width: 8),
+                      AnimatedRotation(
+                        turns: isExpanded ? 0.5 : 0,
+                        duration: const Duration(milliseconds: 180),
+                        child: Icon(
+                          Icons.keyboard_arrow_down_rounded,
+                          color: t.inkFaint,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-            ),
+              AnimatedCrossFade(
+                duration: const Duration(milliseconds: 180),
+                crossFadeState: isExpanded
+                    ? CrossFadeState.showFirst
+                    : CrossFadeState.showSecond,
+                firstChild: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 14),
+                  child: GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 6,
+                      mainAxisSpacing: 8,
+                      crossAxisSpacing: 8,
+                      childAspectRatio: 1,
+                    ),
+                    itemCount: book.chapters,
+                    itemBuilder: (context, ci) {
+                      final chapter = ci + 1;
+                      final selected = isCurrent && chapter == currentChapter;
+                      return InkWell(
+                        borderRadius: BorderRadius.circular(8),
+                        onTap: () => onSelectChapter(book, chapter),
+                        child: Container(
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: selected ? AppBrand.gold : t.appBg,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: selected ? AppBrand.gold : t.border,
+                            ),
+                          ),
+                          child: Text(
+                            '$chapter',
+                            style: AppText.ui(
+                              context,
+                              size: 12.5,
+                              w: FontWeight.w700,
+                              color: selected ? AppBrand.onGold : t.ink,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                secondChild: const SizedBox(width: double.infinity),
+              ),
+            ],
           ),
         );
       },

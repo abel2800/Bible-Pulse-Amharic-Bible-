@@ -171,10 +171,9 @@ class _BiblePackageCard extends StatelessWidget {
     final t = context.colors;
     final installed = store.isInstalled(package.id);
     final progress = store.progress[package.id];
-    final downloading =
-        progress?.state == PackageDownloadState.downloading ||
-            progress?.state == PackageDownloadState.verifying ||
-            progress?.state == PackageDownloadState.installing;
+    final downloading = progress?.state == PackageDownloadState.downloading ||
+        progress?.state == PackageDownloadState.verifying ||
+        progress?.state == PackageDownloadState.installing;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 14),

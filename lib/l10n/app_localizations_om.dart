@@ -24,6 +24,9 @@ class AppLocalizationsOm extends AppLocalizations {
   String get goodEvening => 'Akkam galtan';
 
   @override
+  String get goodNight => 'Nagaa haa ooltu';
+
+  @override
   String get welcome => 'Baga nagaan dhuftan';
 
   @override

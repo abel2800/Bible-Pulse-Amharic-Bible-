@@ -1,3 +1,5 @@
+import '../utils/scripture_text.dart';
+
 class BibleVerse {
   final int id;
   final int book;
@@ -10,8 +12,8 @@ class BibleVerse {
     required this.book,
     required this.chapter,
     required this.verse,
-    required this.text,
-  });
+    required String text,
+  }) : text = ScriptureText.clean(text);
 
   factory BibleVerse.fromJson(Map<String, dynamic> json) {
     return BibleVerse(

@@ -8,10 +8,17 @@ import '../providers/engagement_provider.dart';
 import '../providers/navigation_provider.dart';
 import '../providers/study_provider.dart';
 import '../providers/theme_provider.dart';
-import '../services/auth_service.dart';
+import '../providers/color_theme_provider.dart';
+import '../providers/reminder_provider.dart';
 import '../utils/app_theme.dart';
+import '../utils/time_of_day_greeting.dart';
+import '../utils/streak_copy.dart';
 import '../widgets/app_drawer.dart';
+import '../widgets/design/bp_widgets.dart';
 
+/// Home. One coherent surface, sharing the same navy/parchment + gold
+/// design language as every other screen in the app — no separate color
+/// system, no second row of tabs competing with the bottom nav.
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
@@ -20,34 +27,36 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  int _topTab = 0;
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      await context.read<BibleProvider>().refreshVerseOfTheDay();
+      if (!mounted) return;
+      final engagement = context.read<EngagementProvider>();
+      await context.read<ReminderProvider>().refreshStreakNotifications(
+            streak: engagement.streakWithGrace(),
+            readToday: engagement.hasReadToday(),
+          );
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    final t = context.colors;
     final bible = context.watch<BibleProvider>();
     final dailyVerse = bible.verseOfTheDay;
     final theme = context.watch<ThemeProvider>();
     final l10n = AppLocalizations.of(context);
     final capabilities = context.watch<AppCapabilities>();
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bg = isDark ? Colors.black : AppTheme.appBgLight;
-    final ink = isDark ? Colors.white : AppTheme.ink;
-    final soft = isDark ? Colors.white70 : AppTheme.inkSoft;
-    final card = isDark ? const Color(0xFF1C1C1E) : AppTheme.surfaceLight;
-    final streak = context.watch<EngagementProvider>().streakWithGrace();
-    final auth = context.watch<AuthService>();
-    final name = auth.currentUser?.displayName?.split(' ').first;
-    final hour = DateTime.now().hour;
-    final greeting = hour < 12
-        ? l10n.goodMorning
-        : hour < 17
-            ? l10n.goodAfternoon
-            : l10n.goodEvening;
-    final greetLine =
-        name == null || name.isEmpty ? greeting : '$greeting, $name';
+    final engagement = context.watch<EngagementProvider>();
+    final streak = engagement.streakWithGrace();
+    final notesCount = context.watch<StudyProvider>().notes.length;
+    final greeting = TimeOfDayGreeting.now(l10n);
 
     return Scaffold(
-      backgroundColor: bg,
+      backgroundColor: t.appBg,
       drawer: const AppDrawer(),
       body: SafeArea(
         child: Center(
@@ -55,47 +64,51 @@ class _DashboardScreenState extends State<DashboardScreen> {
             constraints: const BoxConstraints(maxWidth: 720),
             child: CustomScrollView(
               slivers: [
+                // Single header row: menu, greeting, streak, theme toggle.
+                // No second tab row underneath it.
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 12, 0),
+                    padding: const EdgeInsets.fromLTRB(8, 8, 12, 0),
                     child: Builder(
                       builder: (context) => Row(
                         children: [
-                          _TopTab(
-                            label: 'Today',
-                            selected: _topTab == 0,
-                            accent: const Color(0xFFE53935),
-                            onTap: () => setState(() => _topTab = 0),
-                          ),
-                          const SizedBox(width: 18),
-                          _TopTab(
-                            label: 'Community',
-                            selected: _topTab == 1,
-                            accent: const Color(0xFFE53935),
-                            onTap: () {
-                              setState(() => _topTab = 1);
-                              if (capabilities.community) {
-                                Navigator.pushNamed(context, '/community');
-                              }
-                            },
+                          BpIconButton(
+                            icon: Icons.menu_rounded,
+                            tooltip: 'Open menu',
+                            onPressed: () => Scaffold.of(context).openDrawer(),
                           ),
                           const Spacer(),
-                          _HeaderIcon(
-                            icon: Icons.bolt_rounded,
-                            badge: streak > 0 ? '$streak' : null,
-                            onTap: () {},
+                          if (streak > 0) ...[
+                            BpPill(
+                              icon: Icons.local_fire_department_rounded,
+                              label: '$streak',
+                            ),
+                            const SizedBox(width: 8),
+                          ],
+                          BpIconButton(
+                            icon: Icons.search_rounded,
+                            tooltip: l10n.searchScripture,
+                            onPressed: () =>
+                                context.read<NavigationProvider>().setIndex(3),
                           ),
-                          const SizedBox(width: 4),
-                          _HeaderIcon(
-                            icon: Icons.notifications_none_rounded,
-                            onTap: () => Scaffold.of(context).openDrawer(),
-                          ),
-                          const SizedBox(width: 4),
-                          _HeaderIcon(
+                          const SizedBox(width: 8),
+                          BpIconButton(
                             icon: theme.isDarkMode
                                 ? Icons.light_mode_rounded
                                 : Icons.dark_mode_rounded,
-                            onTap: theme.toggleTheme,
+                            tooltip: theme.isDarkMode
+                                ? 'Use light mode'
+                                : 'Use dark mode',
+                            onPressed: () async {
+                              final nextDark = !theme.isDarkMode;
+                              await theme.setThemeMode(
+                                nextDark ? ThemeMode.dark : ThemeMode.light,
+                              );
+                              if (!context.mounted) return;
+                              await context
+                                  .read<ColorThemeProvider>()
+                                  .syncWithAppBrightness(nextDark);
+                            },
                           ),
                         ],
                       ),
@@ -104,50 +117,66 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
+                    padding: const EdgeInsets.fromLTRB(20, 18, 20, 4),
                     child: Text(
-                      greetLine,
-                      style: TextStyle(
-                        fontFamily: 'Georgia',
-                        fontSize: 28,
-                        fontWeight: FontWeight.w700,
-                        color: ink,
-                        height: 1.15,
-                      ),
+                      greeting,
+                      style: AppTheme.brandTitle(fontSize: 26, color: t.ink),
                     ),
                   ),
                 ),
-                if (dailyVerse != null)
-                  SliverToBoxAdapter(
-                    child: _VerseOfDayHero(
-                      verse: dailyVerse.text,
-                      reference:
-                          '${bible.getVerseReference(dailyVerse)} · WEB',
-                      isDark: isDark,
-                      onOpen: () async {
-                        await bible.goToVerse(
-                          dailyVerse.book,
-                          dailyVerse.chapter,
-                          dailyVerse.verse,
-                        );
-                        if (context.mounted) {
-                          context.read<NavigationProvider>().setIndex(1);
-                        }
-                      },
-                    ),
-                  ),
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+                    padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+                    child: _StreakCard(
+                      streak: streak,
+                      readToday: engagement.hasReadToday(),
+                      title: engagement.streakTitle(),
+                      encouragement: engagement.streakEncouragement(),
+                      progress: engagement.progressToNextMilestone(),
+                      nextMilestone: engagement.nextMilestone,
+                      longest: engagement.longestStreak,
+                      onKeepAlive: () =>
+                          context.read<NavigationProvider>().setIndex(1),
+                    ),
+                  ),
+                ),
+
+                // Verse of the day, styled like the rest of the app
+                // (parchment/navy + gold), not a separate purple theme.
+                if (dailyVerse != null)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+                      child: _VerseOfDayCard(
+                        verse: dailyVerse.text,
+                        reference:
+                            '${bible.getVerseReference(dailyVerse)} · ${bible.currentVersion}',
+                        onOpen: () async {
+                          await bible.goToVerse(
+                            dailyVerse.book,
+                            dailyVerse.chapter,
+                            dailyVerse.verse,
+                          );
+                          if (context.mounted) {
+                            context.read<NavigationProvider>().setIndex(1);
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+
+                // Continue reading + study, as two compact rows.
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
                     child: _GuidedRow(
-                      eyebrow: 'Continue reading',
+                      icon: Icons.menu_book_rounded,
+                      eyebrow: l10n.continueReading,
                       title: bible.selectedBook == null
-                          ? 'Open Scripture'
+                          ? l10n.chooseBookToRead
                           : '${bible.selectedBook!.name} ${bible.selectedChapter}',
-                      durationLabel: capabilities.audio ? '▶ Listen' : 'Read',
-                      cardColor: card,
-                      ink: ink,
-                      soft: soft,
+                      trailingLabel:
+                          capabilities.audio ? l10n.listen : l10n.readBible,
                       onTap: () =>
                           context.read<NavigationProvider>().setIndex(1),
                     ),
@@ -155,43 +184,109 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                    padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
                     child: _GuidedRow(
-                      eyebrow: 'Study',
-                      title: context.watch<StudyProvider>().notes.isEmpty
-                          ? 'Capture a note while you read'
-                          : '${context.watch<StudyProvider>().notes.length} notes saved',
-                      durationLabel: 'Open',
-                      cardColor: card,
-                      ink: ink,
-                      soft: soft,
+                      icon: Icons.edit_note_rounded,
+                      eyebrow: l10n.myStudy,
+                      title: notesCount == 0
+                          ? l10n.noNotes
+                          : '$notesCount ${l10n.notes}',
+                      trailingLabel: l10n.seeAll,
                       onTap: () =>
                           context.read<NavigationProvider>().setIndex(2),
                     ),
                   ),
                 ),
+
+                // Quick actions grid — the real home-screen substance.
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(20, 22, 20, 8),
                     child: Text(
-                      'More for you',
+                      l10n.quickActions,
                       style: AppTheme.ui(
-                        fontSize: 18,
+                        fontSize: 15,
                         weight: FontWeight.w700,
-                        color: ink,
+                        color: t.ink,
                       ),
                     ),
                   ),
                 ),
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: card,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                    child: GridView.count(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      crossAxisCount: 2,
+                      mainAxisSpacing: 12,
+                      crossAxisSpacing: 12,
+                      childAspectRatio: 1.5,
+                      children: [
+                        _QuickCard(
+                          icon: Icons.menu_book_rounded,
+                          title: l10n.readBible,
+                          subtitle: l10n.browseBooks,
+                          onTap: () =>
+                              context.read<NavigationProvider>().setIndex(1),
+                        ),
+                        _QuickCard(
+                          icon: Icons.headphones_rounded,
+                          title: l10n.listen,
+                          subtitle: capabilities.audio
+                              ? l10n.chapterAudio
+                              : l10n.audioGated,
+                          onTap: () =>
+                              context.read<NavigationProvider>().setIndex(1),
+                        ),
+                        _QuickCard(
+                          icon: Icons.favorite_border_rounded,
+                          title: l10n.dailyPrayer,
+                          subtitle: l10n.prayerJournal,
+                          onTap: () =>
+                              Navigator.pushNamed(context, '/prayer_journal'),
+                        ),
+                        if (capabilities.readingPlans)
+                          _QuickCard(
+                            icon: Icons.checklist_rounded,
+                            title: l10n.readingPlans,
+                            subtitle: l10n.seeAll,
+                            onTap: () =>
+                                Navigator.pushNamed(context, '/reading_plans'),
+                          )
+                        else
+                          _QuickCard(
+                            icon: Icons.bookmark_border_rounded,
+                            title: l10n.bookmarks,
+                            subtitle: l10n.seeAll,
+                            onTap: () =>
+                                context.read<NavigationProvider>().setIndex(2),
+                          ),
+                        _QuickCard(
+                          icon: Icons.auto_awesome_rounded,
+                          title: l10n.createWallpaper,
+                          subtitle: l10n.verseWallpaper,
+                          onTap: () =>
+                              Navigator.pushNamed(context, '/wallpaper'),
+                        ),
+                        _QuickCard(
+                          icon: Icons.storefront_rounded,
+                          title: l10n.bibleStore,
+                          subtitle: l10n.browseBibles,
+                          onTap: () =>
+                              Navigator.pushNamed(context, '/bible_store'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 14, 20, 28),
+                    child: BpCard(
+                      onTap: () =>
+                          context.read<NavigationProvider>().setIndex(1),
                       child: Row(
                         children: [
                           Expanded(
@@ -199,10 +294,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Need a place to begin? Open the Bible and listen while you read.',
+                                  l10n.tapBookName,
                                   style: AppTheme.ui(
                                     fontSize: 14,
-                                    color: soft,
+                                    color: t.inkSoft,
                                   ),
                                 ),
                                 const SizedBox(height: 12),
@@ -211,32 +306,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       .read<NavigationProvider>()
                                       .setIndex(1),
                                   style: FilledButton.styleFrom(
-                                    backgroundColor: isDark
-                                        ? const Color(0xFF2C2C2E)
-                                        : AppTheme.surface2Light,
-                                    foregroundColor: ink,
+                                    backgroundColor: AppTheme.gold,
+                                    foregroundColor: AppTheme.onGold,
                                   ),
-                                  child: const Text('Open Bible'),
+                                  child: Text(l10n.readBible),
                                 ),
                               ],
                             ),
                           ),
                           const SizedBox(width: 12),
                           Container(
-                            width: 72,
-                            height: 72,
+                            width: 64,
+                            height: 64,
                             decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(14),
                               gradient: const LinearGradient(
-                                colors: [
-                                  Color(0xFF5B2C6F),
-                                  Color(0xFF1A1A2E),
-                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [AppTheme.goldSoft, AppTheme.gold],
                               ),
                             ),
                             child: const Icon(
                               Icons.menu_book_rounded,
-                              color: Colors.white70,
+                              color: AppTheme.onGold,
                             ),
                           ),
                         ],
@@ -253,161 +345,225 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 }
 
-class _TopTab extends StatelessWidget {
-  const _TopTab({
-    required this.label,
-    required this.selected,
-    required this.accent,
-    required this.onTap,
+class _StreakCard extends StatelessWidget {
+  const _StreakCard({
+    required this.streak,
+    required this.readToday,
+    required this.title,
+    required this.encouragement,
+    required this.progress,
+    required this.nextMilestone,
+    required this.longest,
+    required this.onKeepAlive,
   });
 
-  final String label;
-  final bool selected;
-  final Color accent;
-  final VoidCallback onTap;
+  final int streak;
+  final bool readToday;
+  final String title;
+  final String encouragement;
+  final double progress;
+  final int? nextMilestone;
+  final int longest;
+  final VoidCallback onKeepAlive;
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return InkWell(
-      onTap: onTap,
+    final t = context.colors;
+    final milestoneHit = StreakCopy.isMilestone(streak) && readToday;
+
+    return BpCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppTheme.gold.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  readToday
+                      ? Icons.local_fire_department_rounded
+                      : Icons.local_fire_department_outlined,
+                  color: AppTheme.gold,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      streak <= 0 ? 'Start a streak' : '$streak-day streak',
+                      style: AppTheme.ui(
+                        fontSize: 16,
+                        weight: FontWeight.w700,
+                        color: t.ink,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      title,
+                      style: AppTheme.ui(
+                        fontSize: 12.5,
+                        weight: FontWeight.w600,
+                        color: AppTheme.gold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (longest > 0)
+                Text(
+                  'Best $longest',
+                  style: AppTheme.ui(fontSize: 11, color: t.inkSoft),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
           Text(
-            label,
-            style: AppTheme.ui(
-              fontSize: 16,
-              weight: selected ? FontWeight.w700 : FontWeight.w500,
-              color: selected
-                  ? (isDark ? Colors.white : AppTheme.ink)
-                  : (isDark ? Colors.white54 : AppTheme.inkSoft),
+            encouragement,
+            style: AppTheme.ui(fontSize: 13, color: t.inkSoft, height: 1.4),
+          ),
+          if (nextMilestone != null) ...[
+            const SizedBox(height: 12),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(999),
+              child: LinearProgressIndicator(
+                value: progress,
+                minHeight: 7,
+                backgroundColor: t.border,
+                color: AppTheme.gold,
+              ),
             ),
-          ),
-          const SizedBox(height: 6),
-          Container(
-            width: 28,
-            height: 2.5,
-            color: selected ? accent : Colors.transparent,
-          ),
+            const SizedBox(height: 6),
+            Text(
+              milestoneHit
+                  ? 'Milestone reached — next goal $nextMilestone days'
+                  : 'Next badge at $nextMilestone days',
+              style: AppTheme.ui(fontSize: 11, color: t.inkFaint),
+            ),
+          ],
+          if (!readToday) ...[
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: onKeepAlive,
+                icon: const Icon(Icons.menu_book_rounded, size: 18),
+                label: Text(
+                  streak <= 0
+                      ? 'Read to light your flame'
+                      : 'Keep the flame alive',
+                ),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppTheme.gold,
+                  foregroundColor: AppTheme.onGold,
+                ),
+              ),
+            ),
+          ] else ...[
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                const Icon(
+                  Icons.check_circle_rounded,
+                  size: 16,
+                  color: AppTheme.teal,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  'Today’s reading counts',
+                  style: AppTheme.ui(
+                    fontSize: 12,
+                    weight: FontWeight.w600,
+                    color: AppTheme.teal,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
   }
 }
 
-class _HeaderIcon extends StatelessWidget {
-  const _HeaderIcon({
-    required this.icon,
-    required this.onTap,
-    this.badge,
-  });
-
-  final IconData icon;
-  final VoidCallback onTap;
-  final String? badge;
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return IconButton(
-      onPressed: onTap,
-      icon: Badge(
-        isLabelVisible: badge != null,
-        label: badge == null ? null : Text(badge!),
-        child: Icon(
-          icon,
-          color: isDark ? Colors.white : AppTheme.ink,
-        ),
-      ),
-    );
-  }
-}
-
-class _VerseOfDayHero extends StatelessWidget {
-  const _VerseOfDayHero({
+class _VerseOfDayCard extends StatelessWidget {
+  const _VerseOfDayCard({
     required this.verse,
     required this.reference,
-    required this.isDark,
     required this.onOpen,
   });
 
   final String verse;
   final String reference;
-  final bool isDark;
   final VoidCallback onOpen;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onOpen,
-          borderRadius: BorderRadius.circular(18),
-          child: Ink(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(18),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: isDark
-                    ? const [Color(0xFF2D1B4E), Color(0xFF0D0D0D)]
-                    : const [Color(0xFF3D2B1F), Color(0xFF1A1420)],
-              ),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onOpen,
+        borderRadius: BorderRadius.circular(18),
+        child: Ink(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: isDark
+                  ? const [AppTheme.surface2Dark, AppTheme.appBgDark]
+                  : const [AppTheme.surface2Light, AppTheme.appBgLight],
             ),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Verse of the Day',
-                    style: AppTheme.ui(
-                      fontSize: 12,
-                      weight: FontWeight.w600,
-                      color: Colors.white70,
+            border: Border.all(
+              color: isDark ? AppTheme.borderDark : AppTheme.borderLight,
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.auto_awesome,
+                        size: 14, color: AppTheme.gold),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Verse of the Day',
+                      style: AppTheme.ui(
+                        fontSize: 12,
+                        weight: FontWeight.w700,
+                        color: AppTheme.gold,
+                      ),
                     ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  reference,
+                  style: AppTheme.ui(
+                    fontSize: 12,
+                    weight: FontWeight.w600,
+                    color: isDark ? AppTheme.inkSoftDark : AppTheme.inkSoft,
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    reference,
-                    style: AppTheme.ui(
-                      fontSize: 13,
-                      weight: FontWeight.w700,
-                      color: Colors.white,
-                    ),
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  verse,
+                  style: AppTheme.scripture(
+                    fontSize: 19,
+                    color: isDark ? AppTheme.inkDark : AppTheme.ink,
                   ),
-                  const SizedBox(height: 16),
-                  Text(
-                    verse,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontFamily: 'Georgia',
-                      fontSize: 20,
-                      height: 1.45,
-                      color: Colors.white,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  const Row(
-                    children: [
-                      Icon(Icons.favorite_border,
-                          size: 18, color: Colors.white70),
-                      SizedBox(width: 16),
-                      Icon(Icons.chat_bubble_outline,
-                          size: 18, color: Colors.white70),
-                      SizedBox(width: 16),
-                      Icon(Icons.ios_share_rounded,
-                          size: 18, color: Colors.white70),
-                      Spacer(),
-                      Icon(Icons.more_horiz, color: Colors.white70),
-                    ],
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
@@ -418,74 +574,109 @@ class _VerseOfDayHero extends StatelessWidget {
 
 class _GuidedRow extends StatelessWidget {
   const _GuidedRow({
+    required this.icon,
     required this.eyebrow,
     required this.title,
-    required this.durationLabel,
-    required this.cardColor,
-    required this.ink,
-    required this.soft,
+    required this.trailingLabel,
     required this.onTap,
   });
 
+  final IconData icon;
   final String eyebrow;
   final String title;
-  final String durationLabel;
-  final Color cardColor;
-  final Color ink;
-  final Color soft;
+  final String trailingLabel;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: cardColor,
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      eyebrow,
-                      style: AppTheme.ui(fontSize: 12, color: soft),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      title,
-                      style: AppTheme.ui(
-                        fontSize: 16,
-                        weight: FontWeight.w700,
-                        color: ink,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      durationLabel,
-                      style: AppTheme.ui(fontSize: 12, color: soft),
-                    ),
-                  ],
+    final t = context.colors;
+    return BpCard(
+      onTap: onTap,
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: t.surface2,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: AppTheme.gold, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  eyebrow,
+                  style: AppTheme.ui(fontSize: 12, color: t.inkFaint),
                 ),
-              ),
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF4A5568), Color(0xFF1A202C)],
+                const SizedBox(height: 2),
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTheme.ui(
+                    fontSize: 15,
+                    weight: FontWeight.w700,
+                    color: t.ink,
                   ),
                 ),
-                child: const Icon(Icons.play_arrow_rounded, color: Colors.white),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
+          const SizedBox(width: 8),
+          BpPill(label: trailingLabel),
+        ],
+      ),
+    );
+  }
+}
+
+class _QuickCard extends StatelessWidget {
+  const _QuickCard({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.colors;
+    return BpCard(
+      onTap: onTap,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, color: AppTheme.gold, size: 22),
+          const SizedBox(height: 10),
+          Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppTheme.ui(
+              fontSize: 14,
+              weight: FontWeight.w700,
+              color: t.ink,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            subtitle,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppTheme.ui(fontSize: 12, color: t.inkFaint),
+          ),
+        ],
       ),
     );
   }

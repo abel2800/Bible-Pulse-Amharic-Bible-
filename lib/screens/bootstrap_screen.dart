@@ -49,6 +49,12 @@ class _BootstrapScreenState extends State<BootstrapScreen> {
       ]);
 
       if (!mounted) return;
+      // Align scripture page with app light/dark (Eye Comfort is left alone).
+      await context.read<ColorThemeProvider>().syncWithAppBrightness(
+            context.read<ThemeProvider>().isDarkMode,
+          );
+
+      if (!mounted) return;
       setState(() => _status = BootstrapStatus.ready);
       Navigator.of(context).pushReplacementNamed('/home');
     } catch (error) {

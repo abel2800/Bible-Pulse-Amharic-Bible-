@@ -74,9 +74,11 @@ class BiblePackageInfo {
       id: json['id'] as String,
       versionId: json['versionId'] as String,
       name: json['name'] as String,
-      abbreviation: json['abbreviation'] as String? ?? json['versionId'] as String,
+      abbreviation:
+          json['abbreviation'] as String? ?? json['versionId'] as String,
       language: json['language'] as String,
-      languageName: json['languageName'] as String? ?? json['language'] as String,
+      languageName:
+          json['languageName'] as String? ?? json['language'] as String,
       description: json['description'] as String? ?? '',
       license: json['license'] as String? ?? '',
       attribution: json['attribution'] as String? ?? '',
@@ -142,7 +144,16 @@ class InstalledBiblePackage {
   }
 }
 
-enum PackageDownloadState { idle, queued, downloading, paused, verifying, installing, failed, completed }
+enum PackageDownloadState {
+  idle,
+  queued,
+  downloading,
+  paused,
+  verifying,
+  installing,
+  failed,
+  completed
+}
 
 class PackageDownloadProgress {
   final String packageId;

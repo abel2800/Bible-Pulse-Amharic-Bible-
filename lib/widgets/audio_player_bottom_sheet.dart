@@ -25,8 +25,11 @@ class AudioPlayerBottomSheet extends StatelessWidget {
 
     return Consumer<AudioService>(
       builder: (context, audioService, _) {
+        final maxHeight = MediaQuery.sizeOf(context).height * 0.85;
+
         return Container(
           margin: const EdgeInsets.all(12),
+          constraints: BoxConstraints(maxHeight: maxHeight),
           decoration: BoxDecoration(
             color: isDark ? AppTheme.surfaceDark : AppTheme.surfaceLight,
             borderRadius: BorderRadius.circular(20),
@@ -35,7 +38,7 @@ class AudioPlayerBottomSheet extends StatelessWidget {
             ),
             boxShadow: List<BoxShadow>.from(AppTheme.cardShadow(isDark)),
           ),
-          child: Padding(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -99,7 +102,7 @@ class AudioPlayerBottomSheet extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
                 StreamBuilder<Duration>(
                   stream: audioService.positionStream,
                   builder: (context, snapshot) {
@@ -161,7 +164,7 @@ class AudioPlayerBottomSheet extends StatelessWidget {
                     );
                   },
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -202,9 +205,10 @@ class AudioPlayerBottomSheet extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
                 Wrap(
                   spacing: 8,
+                  runSpacing: 8,
                   alignment: WrapAlignment.center,
                   children: [
                     for (final rate in AudioService.preferredSpeeds)
@@ -218,7 +222,7 @@ class AudioPlayerBottomSheet extends StatelessWidget {
                   ],
                 ),
                 if (audioService.enabled) ...[
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 16),
                   Consumer<AudioDownloadProvider>(
                     builder: (context, downloads, _) => Wrap(
                       spacing: 8,

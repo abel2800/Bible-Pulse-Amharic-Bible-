@@ -78,250 +78,252 @@ class _VerseActionBottomSheetState extends State<VerseActionBottomSheet> {
         ),
         child: SingleChildScrollView(
           child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: border,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    widget.reference,
-                    style: AppTheme.brandTitle(
-                      fontSize: 18,
-                      weight: FontWeight.w600,
-                      color: ink,
-                    ),
-                  ),
-                ),
-                BpIconButton(
-                  icon: Icons.close_rounded,
-                  tooltip: 'Close',
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-              decoration: BoxDecoration(
-                color: isDark ? AppTheme.surface2Dark : AppTheme.surface2Light,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppTheme.gold, width: 1.2),
-              ),
-              child: Text(
-                widget.verse.text,
-                style: AppTheme.scripture(
-                  fontSize: 16,
-                  height: 1.75,
-                  style: FontStyle.italic,
-                  color: ink,
-                ),
-              ),
-            ),
-            if (linkedHymns.isNotEmpty) ...[
-              const SizedBox(height: 20),
-              const BpGroupHeader('Inspired hymns'),
-              for (final hymn in linkedHymns)
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.music_note_rounded,
-                      color: AppTheme.teal),
-                  title: Text(
-                    hymn.title,
-                    style: AppTheme.ui(
-                        fontSize: 14, weight: FontWeight.w600, color: ink),
-                  ),
-                  subtitle: Text(
-                    hymn.scripture ?? '',
-                    style: AppTheme.ui(fontSize: 12, color: inkSoft),
-                  ),
-                ),
-            ],
-            const SizedBox(height: 20),
-            const BpGroupHeader('Highlight'),
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: [
-                for (final color in AppTheme.highlightColors)
-                  _HighlightSwatch(
-                    color: color,
-                    isSelected:
-                        studyProvider.getHighlightColor(widget.reference) ==
-                            color,
-                    onTap: () async {
-                      await studyProvider.addHighlight(
-                        widget.reference,
-                        widget.verse.text,
-                        color,
-                      );
-                      if (context.mounted) {
-                        Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              'Verse highlighted',
-                              style: AppTheme.ui(color: Colors.white),
-                            ),
-                            duration: const Duration(seconds: 1),
-                            backgroundColor: color,
-                          ),
-                        );
-                      }
-                    },
-                  ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            _ActionRow(
-              icon: Icons.note_alt_outlined,
-              label: 'Add note',
-              color: AppTheme.teal,
-              onTap: () => setState(() => _showNoteField = !_showNoteField),
-            ),
-            if (_showNoteField) ...[
-              const SizedBox(height: 12),
-              TextField(
-                controller: _noteController,
-                maxLines: 3,
-                style: AppTheme.scripture(fontSize: 15, color: ink),
-                decoration: InputDecoration(
-                  hintText: 'Write your thoughts here…',
-                  hintStyle: AppTheme.ui(fontSize: 13, color: inkSoft),
-                  suffixIcon: IconButton(
-                    icon: const Icon(Icons.check_rounded, color: AppTheme.gold),
-                    onPressed: () => _saveNote(context, studyProvider),
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: border,
+                    borderRadius: BorderRadius.circular(2),
                   ),
                 ),
               ),
-            ],
-            const SizedBox(height: 8),
-            _ActionRow(
-              icon: isBookmarked
-                  ? Icons.bookmark_rounded
-                  : Icons.bookmark_border_rounded,
-              label: isBookmarked ? 'Bookmarked' : 'Bookmark',
-              color: AppTheme.gold,
-              onTap: () async {
-                if (isBookmarked) {
-                  await studyProvider.removeBookmark(widget.reference);
-                } else {
-                  await studyProvider.addBookmark(
-                    widget.reference,
-                    widget.verse.text,
-                  );
-                }
-                if (context.mounted) Navigator.pop(context);
-              },
-            ),
-            const SizedBox(height: 8),
-            _ActionRow(
-              icon: Icons.image_outlined,
-              label: 'Share as verse card',
-              color: AppTheme.gold,
-              onTap: capabilities.wallpaperExport
-                  ? () {
-                      Navigator.pop(context);
-                      Navigator.pushNamed(
-                        context,
-                        '/wallpaper',
-                        arguments: {
-                          'text': widget.verse.text,
-                          'reference': widget.reference,
-                        },
-                      );
-                    }
-                  : () {
-                      Share.share(
-                        '${widget.verse.text}\n— ${widget.reference}\n\nBiblePulse',
-                      );
-                    },
-            ),
-            const SizedBox(height: 8),
-            _ActionRow(
-              icon: Icons.copy_rounded,
-              label: 'Copy',
-              color: inkSoft,
-              onTap: () async {
-                await Clipboard.setData(
-                  ClipboardData(
-                    text: '${widget.verse.text}\n— ${widget.reference}',
-                  ),
-                );
-                if (context.mounted) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        'Verse copied',
-                        style: AppTheme.ui(color: Colors.white),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      widget.reference,
+                      style: AppTheme.brandTitle(
+                        fontSize: 18,
+                        weight: FontWeight.w600,
+                        color: ink,
                       ),
-                      backgroundColor: AppTheme.teal,
                     ),
-                  );
-                }
-              },
-            ),
-            if (isHighlighted) ...[
+                  ),
+                  BpIconButton(
+                    icon: Icons.close_rounded,
+                    tooltip: 'Close',
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+                decoration: BoxDecoration(
+                  color:
+                      isDark ? AppTheme.surface2Dark : AppTheme.surface2Light,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppTheme.gold, width: 1.2),
+                ),
+                child: Text(
+                  widget.verse.text,
+                  style: AppTheme.scripture(
+                    fontSize: 16,
+                    height: 1.75,
+                    style: FontStyle.italic,
+                    color: ink,
+                  ),
+                ),
+              ),
+              if (linkedHymns.isNotEmpty) ...[
+                const SizedBox(height: 20),
+                const BpGroupHeader('Inspired hymns'),
+                for (final hymn in linkedHymns)
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.music_note_rounded,
+                        color: AppTheme.teal),
+                    title: Text(
+                      hymn.title,
+                      style: AppTheme.ui(
+                          fontSize: 14, weight: FontWeight.w600, color: ink),
+                    ),
+                    subtitle: Text(
+                      hymn.scripture ?? '',
+                      style: AppTheme.ui(fontSize: 12, color: inkSoft),
+                    ),
+                  ),
+              ],
+              const SizedBox(height: 20),
+              const BpGroupHeader('Highlight'),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  for (final color in AppTheme.highlightColors)
+                    _HighlightSwatch(
+                      color: color,
+                      isSelected:
+                          studyProvider.getHighlightColor(widget.reference) ==
+                              color,
+                      onTap: () async {
+                        await studyProvider.addHighlight(
+                          widget.reference,
+                          widget.verse.text,
+                          color,
+                        );
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Verse highlighted',
+                                style: AppTheme.ui(color: Colors.white),
+                              ),
+                              duration: const Duration(seconds: 1),
+                              backgroundColor: color,
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              _ActionRow(
+                icon: Icons.note_alt_outlined,
+                label: 'Add note',
+                color: AppTheme.teal,
+                onTap: () => setState(() => _showNoteField = !_showNoteField),
+              ),
+              if (_showNoteField) ...[
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _noteController,
+                  maxLines: 3,
+                  style: AppTheme.scripture(fontSize: 15, color: ink),
+                  decoration: InputDecoration(
+                    hintText: 'Write your thoughts here…',
+                    hintStyle: AppTheme.ui(fontSize: 13, color: inkSoft),
+                    suffixIcon: IconButton(
+                      icon:
+                          const Icon(Icons.check_rounded, color: AppTheme.gold),
+                      onPressed: () => _saveNote(context, studyProvider),
+                    ),
+                  ),
+                ),
+              ],
               const SizedBox(height: 8),
               _ActionRow(
-                icon: Icons.highlight_off_rounded,
-                label: 'Remove highlight',
-                color: AppTheme.vermilion,
-                labelColor: AppTheme.vermilion,
+                icon: isBookmarked
+                    ? Icons.bookmark_rounded
+                    : Icons.bookmark_border_rounded,
+                label: isBookmarked ? 'Bookmarked' : 'Bookmark',
+                color: AppTheme.gold,
                 onTap: () async {
-                  await studyProvider.removeHighlight(widget.reference);
+                  if (isBookmarked) {
+                    await studyProvider.removeBookmark(widget.reference);
+                  } else {
+                    await studyProvider.addBookmark(
+                      widget.reference,
+                      widget.verse.text,
+                    );
+                  }
+                  if (context.mounted) Navigator.pop(context);
+                },
+              ),
+              const SizedBox(height: 8),
+              _ActionRow(
+                icon: Icons.image_outlined,
+                label: 'Share as verse card',
+                color: AppTheme.gold,
+                onTap: capabilities.wallpaperExport
+                    ? () {
+                        Navigator.pop(context);
+                        Navigator.pushNamed(
+                          context,
+                          '/wallpaper',
+                          arguments: {
+                            'text': widget.verse.text,
+                            'reference': widget.reference,
+                          },
+                        );
+                      }
+                    : () {
+                        Share.share(
+                          '${widget.verse.text}\n— ${widget.reference}\n\nBiblePulse',
+                        );
+                      },
+              ),
+              const SizedBox(height: 8),
+              _ActionRow(
+                icon: Icons.copy_rounded,
+                label: 'Copy',
+                color: inkSoft,
+                onTap: () async {
+                  await Clipboard.setData(
+                    ClipboardData(
+                      text: '${widget.verse.text}\n— ${widget.reference}',
+                    ),
+                  );
                   if (context.mounted) {
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
-                          'Highlight removed',
+                          'Verse copied',
                           style: AppTheme.ui(color: Colors.white),
                         ),
-                        backgroundColor: AppTheme.vermilion,
+                        backgroundColor: AppTheme.teal,
                       ),
                     );
                   }
                 },
               ),
-            ],
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                OutlinedButton.icon(
-                  onPressed: () {
-                    Share.share(
-                      '${widget.verse.text}\n— ${widget.reference}\n\nBiblePulse',
-                    );
+              if (isHighlighted) ...[
+                const SizedBox(height: 8),
+                _ActionRow(
+                  icon: Icons.highlight_off_rounded,
+                  label: 'Remove highlight',
+                  color: AppTheme.vermilion,
+                  labelColor: AppTheme.vermilion,
+                  onTap: () async {
+                    await studyProvider.removeHighlight(widget.reference);
+                    if (context.mounted) {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Highlight removed',
+                            style: AppTheme.ui(color: Colors.white),
+                          ),
+                          backgroundColor: AppTheme.vermilion,
+                        ),
+                      );
+                    }
                   },
-                  icon: const Icon(Icons.share_rounded, size: 18),
-                  label: const Text('Share text'),
-                ),
-                OutlinedButton.icon(
-                  onPressed: () => _showCrossReferences(context),
-                  icon: const Icon(Icons.account_tree_rounded, size: 18),
-                  label: const Text('Cross-references'),
                 ),
               ],
-            ),
-          ],
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      Share.share(
+                        '${widget.verse.text}\n— ${widget.reference}\n\nBiblePulse',
+                      );
+                    },
+                    icon: const Icon(Icons.share_rounded, size: 18),
+                    label: const Text('Share text'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: () => _showCrossReferences(context),
+                    icon: const Icon(Icons.account_tree_rounded, size: 18),
+                    label: const Text('Cross-references'),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
-      ),
       ),
     );
   }

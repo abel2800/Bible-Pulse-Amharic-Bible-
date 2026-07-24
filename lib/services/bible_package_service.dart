@@ -144,8 +144,8 @@ class BiblePackageService {
         onProgress?.call(0.8);
       } else {
         final url = pkg.install.url!;
-        final uri =
-            await _storage.resolveBiblePackageUrl(pkg.id, url) ?? Uri.parse(url);
+        final uri = await _storage.resolveBiblePackageUrl(pkg.id, url) ??
+            Uri.parse(url);
         final response = await http.get(uri);
         if (response.statusCode < 200 || response.statusCode >= 300) {
           throw Exception('Download failed (${response.statusCode})');
@@ -205,8 +205,7 @@ class BiblePackageService {
     await fs.ensureDir(langDir);
     final outPath = p.join(langDir, '${pkg.versionId.toLowerCase()}.json');
     await fs.writeString(outPath, jsonEncode(bibleJson));
-    final indexPath =
-        p.join(langDir, '${pkg.versionId.toLowerCase()}.db.json');
+    final indexPath = p.join(langDir, '${pkg.versionId.toLowerCase()}.db.json');
     await fs.writeString(indexPath, jsonEncode(_verseIndex(bibleJson)));
     return outPath;
   }

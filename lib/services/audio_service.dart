@@ -114,7 +114,8 @@ class AudioService with ChangeNotifier {
     }));
 
     if (html_audio.WebHtmlAudio.isSupported) {
-      _subscriptions.add(html_audio.WebHtmlAudio.playingStream.listen((playing) {
+      _subscriptions
+          .add(html_audio.WebHtmlAudio.playingStream.listen((playing) {
         if (!_useHtmlAudio) return;
         _isPlaying = playing;
         _isLoading = false;
@@ -307,6 +308,4 @@ class AudioService with ChangeNotifier {
     _player.dispose();
     super.dispose();
   }
-}
-
 }

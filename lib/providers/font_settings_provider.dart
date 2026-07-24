@@ -38,10 +38,21 @@ class FontSettingsProvider with ChangeNotifier {
     await _saveFontSettings();
   }
 
-  Future<void> setFontFamily(String family) async {
-    _fontSettings = _fontSettings.copyWith(fontFamily: family);
+  Future<void> setFontFamily(String family,
+      {bool useSystemFont = false}) async {
+    _fontSettings = _fontSettings.copyWith(
+      fontFamily: family,
+      useSystemFont: useSystemFont,
+    );
     notifyListeners();
     await _saveFontSettings();
+  }
+
+  Future<void> setAvailableFont(AvailableFont font) async {
+    await setFontFamily(
+      font.fontFamily,
+      useSystemFont: font.id == 'system',
+    );
   }
 
   Future<void> setLineHeight(double height) async {

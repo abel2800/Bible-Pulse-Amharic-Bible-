@@ -100,10 +100,12 @@ class AppTheme {
     Color? color,
     double height = 1.75,
     FontStyle style = FontStyle.normal,
+    String? fontFamily,
+    bool useSystemFont = false,
   }) {
-    if (isFlutterTest) {
+    if (isFlutterTest || useSystemFont || fontFamily == 'System') {
       return TextStyle(
-        fontFamily: 'serif',
+        fontFamily: useSystemFont || fontFamily == 'System' ? null : 'serif',
         fontSize: fontSize,
         fontWeight: weight,
         color: color,
@@ -111,13 +113,74 @@ class AppTheme {
         fontStyle: style,
       );
     }
-    return GoogleFonts.sourceSerif4(
-      fontSize: fontSize,
-      fontWeight: weight,
-      color: color,
-      height: height,
-      fontStyle: style,
-    );
+
+    switch (fontFamily) {
+      case 'Roboto':
+        return GoogleFonts.roboto(
+          fontSize: fontSize,
+          fontWeight: weight,
+          color: color,
+          height: height,
+          fontStyle: style,
+        );
+      case 'Merriweather':
+        return GoogleFonts.merriweather(
+          fontSize: fontSize,
+          fontWeight: weight,
+          color: color,
+          height: height,
+          fontStyle: style,
+        );
+      case 'Open Sans':
+        return GoogleFonts.openSans(
+          fontSize: fontSize,
+          fontWeight: weight,
+          color: color,
+          height: height,
+          fontStyle: style,
+        );
+      case 'Lato':
+        return GoogleFonts.lato(
+          fontSize: fontSize,
+          fontWeight: weight,
+          color: color,
+          height: height,
+          fontStyle: style,
+        );
+      case 'Libre Baskerville':
+        return GoogleFonts.libreBaskerville(
+          fontSize: fontSize,
+          fontWeight: weight,
+          color: color,
+          height: height,
+          fontStyle: style,
+        );
+      case 'Crimson Text':
+        return GoogleFonts.crimsonText(
+          fontSize: fontSize,
+          fontWeight: weight,
+          color: color,
+          height: height,
+          fontStyle: style,
+        );
+      case 'EB Garamond':
+        return GoogleFonts.ebGaramond(
+          fontSize: fontSize,
+          fontWeight: weight,
+          color: color,
+          height: height,
+          fontStyle: style,
+        );
+      case 'Source Serif Pro':
+      default:
+        return GoogleFonts.sourceSerif4(
+          fontSize: fontSize,
+          fontWeight: weight,
+          color: color,
+          height: height,
+          fontStyle: style,
+        );
+    }
   }
 
   static TextStyle ui({

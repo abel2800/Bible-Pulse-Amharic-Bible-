@@ -20,7 +20,8 @@ class ReaderPlaybackControls extends StatelessWidget {
   Future<void> _stepChapter(BuildContext context, int delta) async {
     final bible = context.read<BibleProvider>();
     final audio = context.read<AudioService>();
-    final keepAudio = audio.hasActiveSession || audio.isPlaying || audio.isLoading;
+    final keepAudio =
+        audio.hasActiveSession || audio.isPlaying || audio.isLoading;
 
     if (delta > 0) {
       await bible.nextChapter();
@@ -88,7 +89,8 @@ class ReaderPlaybackControls extends StatelessWidget {
   Widget build(BuildContext context) {
     final audio = context.watch<AudioService>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bubble = (isDark ? Colors.black : Colors.white).withValues(alpha: 0.72);
+    final bubble =
+        (isDark ? Colors.black : Colors.white).withValues(alpha: 0.72);
 
     return IgnorePointer(
       ignoring: false,
@@ -178,7 +180,8 @@ class ReaderSpeedChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final audio = context.watch<AudioService>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final label = '${audio.speed.toStringAsFixed(audio.speed % 1 == 0 ? 0 : 2)}×';
+    final label =
+        '${audio.speed.toStringAsFixed(audio.speed % 1 == 0 ? 0 : 2)}×';
 
     return Material(
       color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.12),

@@ -24,8 +24,7 @@ class UserPreferencesProvider with ChangeNotifier {
     _preferredAudioPackageId =
         prefs.getString('preferred_audio_package') ?? 'web-henson-en';
     final lang = prefs.getString('languageCode') ?? 'en';
-    _appLanguageCode =
-        supportedLanguageCodes.contains(lang) ? lang : 'en';
+    _appLanguageCode = supportedLanguageCodes.contains(lang) ? lang : 'en';
     _ready = true;
     notifyListeners();
   }

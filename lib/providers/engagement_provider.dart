@@ -5,21 +5,25 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
 import '../models/engagement.dart';
+import '../utils/streak_copy.dart';
 
 class EngagementProvider extends ChangeNotifier {
   final Uuid _uuid = const Uuid();
   final Set<String> _readingDays = {};
   List<PrayerEntry> _prayers = [];
   bool _ready = false;
+  int _longestStreak = 0;
 
   bool get ready => _ready;
   List<PrayerEntry> get prayers => List.unmodifiable(_prayers);
+  int get longestStreak => _longestStreak;
 
   Future<void> initialize() async {
     final preferences = await SharedPreferences.getInstance();
     _readingDays.addAll(
       preferences.getStringList('engagement_reading_days') ?? const [],
     );
+    _longestStreak = preferences.getInt('engagement_longest_streak') ?? 0;
     final prayerJson = preferences.getString('engagement_prayers');
     if (prayerJson != null) {
       try {
@@ -30,17 +34,17 @@ class EngagementProvider extends ChangeNotifier {
         _prayers = [];
       }
     }
+    final current = streakWithGrace();
+    if (current > _longestStreak) {
+      _longestStreak = current;
+      await preferences.setInt('engagement_longest_streak', _longestStreak);
+    }
     _ready = true;
     notifyListeners();
   }
 
-  Future<void> recordReading([DateTime? value]) async {
-    final day = _day(value ?? DateTime.now());
-    if (_readingDays.add(day)) {
-      await _saveReadingDays();
-      notifyListeners();
-    }
-  }
+  bool hasReadToday([DateTime? value]) =>
+      _readingDays.contains(_day(value ?? DateTime.now()));
 
   int streakWithGrace([DateTime? value]) {
     if (_readingDays.isEmpty) return 0;
@@ -66,6 +70,50 @@ class EngagementProvider extends ChangeNotifier {
       cursor = cursor.subtract(const Duration(days: 1));
     }
     return streakDays;
+  }
+
+  String streakTitle([DateTime? value]) =>
+      StreakCopy.titleFor(streakWithGrace(value));
+
+  String streakEncouragement([DateTime? value]) {
+    final now = value ?? DateTime.now();
+    return StreakCopy.encouragement(
+      streak: streakWithGrace(now),
+      readToday: hasReadToday(now),
+    );
+  }
+
+  int? get nextMilestone => StreakCopy.nextMilestone(streakWithGrace());
+
+  double progressToNextMilestone() {
+    final streak = streakWithGrace();
+    final next = StreakCopy.nextMilestone(streak);
+    if (next == null) return 1;
+    final previous = StreakCopy.milestones
+        .where((m) => m <= streak)
+        .fold<int>(0, (a, b) => b > a ? b : a);
+    final span = next - previous;
+    if (span <= 0) return 1;
+    return ((streak - previous) / span).clamp(0.0, 1.0);
+  }
+
+  /// Records today's reading. Returns celebration text when a new day is sealed.
+  Future<String?> recordReading([DateTime? value]) async {
+    final now = value ?? DateTime.now();
+    final day = _day(now);
+    final isNewDay = _readingDays.add(day);
+    if (!isNewDay) return null;
+
+    await _saveReadingDays();
+    final streak = streakWithGrace(now);
+    if (streak > _longestStreak) {
+      _longestStreak = streak;
+      final preferences = await SharedPreferences.getInstance();
+      await preferences.setInt('engagement_longest_streak', _longestStreak);
+    }
+
+    notifyListeners();
+    return StreakCopy.celebrationSnack(streak);
   }
 
   Future<void> addPrayer(String text, {String? verseReference}) async {

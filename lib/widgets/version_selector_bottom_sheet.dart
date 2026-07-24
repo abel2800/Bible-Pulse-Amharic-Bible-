@@ -22,9 +22,8 @@ class VersionSelectorBottomSheet extends StatelessWidget {
     final ink = isDark ? AppTheme.inkDark : AppTheme.ink;
     final soft = isDark ? AppTheme.inkSoftDark : AppTheme.inkSoft;
 
-    final installed = store.catalog
-        .where((pkg) => store.isInstalled(pkg.id))
-        .toList();
+    final installed =
+        store.catalog.where((pkg) => store.isInstalled(pkg.id)).toList();
 
     return Material(
       color: surface,

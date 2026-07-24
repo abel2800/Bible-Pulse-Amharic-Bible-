@@ -75,14 +75,87 @@ class _AudioCard extends StatelessWidget {
 
   final AudioPackageInfo package;
 
+  Future<void> _downloadFull(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
+    final bible = context.read<BibleProvider>();
+    final downloads = context.read<AudioDownloadProvider>();
+    final store = context.read<AudioStoreProvider>();
+    final prefs = context.read<UserPreferencesProvider>();
+
+    final books = bible.books;
+    if (books.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.downloadFailed)),
+      );
+      return;
+    }
+
+    final chapterCount = books.fold<int>(0, (sum, b) => sum + b.chapters);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.download),
+        content: Text(
+          'Download the full ${package.name} audio Bible?\n\n'
+          '$chapterCount chapters will cache offline, like installing a '
+          'Bible translation in the Bible Store.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(l10n.download),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+
+    await downloads.downloadFullBible(
+      versionId: package.bibleVersionId,
+      books: [
+        for (final book in books)
+          (bookId: book.id, chapterCount: book.chapters),
+      ],
+    );
+
+    if (!context.mounted) return;
+
+    if (downloads.error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${l10n.downloadFailed}: ${downloads.error}')),
+      );
+      return;
+    }
+
+    // Mark installed only after a successful full download (or pause mid-way
+    // with some chapters cached — still useful offline for what finished).
+    await store.markInstalled(
+      package,
+      chapters: downloads.completedChapters,
+      bytes: downloads.cacheSizeBytes,
+    );
+    await prefs.setPreferredAudio(package.id);
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.downloadComplete)),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final store = context.watch<AudioStoreProvider>();
     final prefs = context.watch<UserPreferencesProvider>();
+    final downloads = context.watch<AudioDownloadProvider>();
     final t = context.colors;
     final installed = store.isInstalled(package.id);
     final canActivate = store.canActivate(package);
+    final downloading = downloads.downloading;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
@@ -111,6 +184,31 @@ class _AudioCard extends StatelessWidget {
             '${l10n.quality}: ${package.quality} · ${l10n.duration}: ${package.durationLabel}',
             style: AppText.uiFaint(context),
           ),
+          if (downloading) ...[
+            const SizedBox(height: 12),
+            LinearProgressIndicator(value: downloads.progress),
+            const SizedBox(height: 6),
+            Text(
+              '${l10n.downloadProgress} '
+              '${downloads.completedChapters}/${downloads.totalChapters}',
+              style: AppText.uiFaint(context),
+            ),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: downloads.pause,
+                icon: const Icon(Icons.pause_rounded, size: 18),
+                label: Text(l10n.cancelDownload),
+              ),
+            ),
+          ],
+          if (downloads.error != null && !downloading) ...[
+            const SizedBox(height: 8),
+            Text(
+              downloads.error!,
+              style: AppText.ui(context, size: 12, color: AppBrand.error),
+            ),
+          ],
           const SizedBox(height: 14),
           if (!package.approved)
             Text(
@@ -129,29 +227,8 @@ class _AudioCard extends StatelessWidget {
               children: [
                 if (!installed)
                   ElevatedButton(
-                    onPressed: () async {
-                      final bible = context.read<BibleProvider>();
-                      try {
-                        final downloads = context.read<AudioDownloadProvider>();
-                        final book = bible.selectedBook;
-                        if (book != null) {
-                          await downloads.downloadBook(
-                            versionId: package.bibleVersionId,
-                            bookId: book.id,
-                            chapterCount: book.chapters,
-                          );
-                        }
-                      } catch (_) {
-                        // Audio download provider may be gated off.
-                      }
-                      await store.markInstalled(package);
-                      await prefs.setPreferredAudio(package.id);
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(l10n.downloadComplete)),
-                        );
-                      }
-                    },
+                    onPressed:
+                        downloading ? null : () => _downloadFull(context),
                     child: Text(l10n.download),
                   )
                 else ...[

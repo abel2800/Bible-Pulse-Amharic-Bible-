@@ -41,7 +41,8 @@ class AudioPackageInfo {
       bibleVersionId: json['bibleVersionId'] as String,
       name: json['name'] as String,
       language: json['language'] as String,
-      languageName: json['languageName'] as String? ?? json['language'] as String,
+      languageName:
+          json['languageName'] as String? ?? json['language'] as String,
       translation: json['translation'] as String? ?? '',
       narrator: json['narrator'] as String? ?? '',
       description: json['description'] as String? ?? '',

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../config/app_capabilities.dart';
 import '../l10n/app_localizations.dart';
 import '../models/color_theme.dart';
+import '../models/font_settings.dart';
 import '../providers/color_theme_provider.dart';
 import '../providers/font_settings_provider.dart';
 import '../providers/theme_provider.dart';
@@ -11,6 +12,7 @@ import '../providers/audio_download_provider.dart';
 import '../providers/audio_store_provider.dart';
 import '../providers/bible_provider.dart';
 import '../providers/bible_store_provider.dart';
+import '../providers/engagement_provider.dart';
 import '../providers/reminder_provider.dart';
 import '../providers/user_preferences_provider.dart';
 import '../utils/app_theme.dart';
@@ -85,8 +87,17 @@ class SettingsScreen extends StatelessWidget {
                         ),
                       ],
                       selected: {appTheme.themeMode},
-                      onSelectionChanged: (selection) =>
-                          appTheme.setThemeMode(selection.first),
+                      onSelectionChanged: (selection) async {
+                        final mode = selection.first;
+                        await appTheme.setThemeMode(mode);
+                        if (!context.mounted) return;
+                        final isDark = mode == ThemeMode.dark ||
+                            (mode == ThemeMode.system &&
+                                WidgetsBinding.instance.platformDispatcher
+                                        .platformBrightness ==
+                                    Brightness.dark);
+                        await readerTheme.syncWithAppBrightness(isDark);
+                      },
                     ),
                   ],
                 ),
@@ -101,60 +112,55 @@ class SettingsScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 10),
-                    RadioGroup<String>(
-                      groupValue: prefs.appLanguageCode,
-                      onChanged: (value) async {
-                        if (value == null) return;
-                        await prefs.setAppLanguage(value);
-                        await appTheme.setLocale(Locale(value));
-                        if (!context.mounted) return;
-                        final hasScripture = bibleStore.installed.values
-                            .any((item) => item.language == value);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              hasScripture
-                                  ? l10n.scriptureLanguageNote
-                                  : l10n.noScriptureForLanguage,
-                            ),
-                            action: SnackBarAction(
-                              label: l10n.openBibleStore,
-                              onPressed: () => Navigator.pushNamed(
-                                context,
-                                '/bible_store',
-                              ),
-                            ),
+                    InputDecorator(
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: isDark
+                            ? AppTheme.surfaceDark
+                            : AppTheme.surfaceLight,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(
+                            color: isDark
+                                ? AppTheme.borderDark
+                                : AppTheme.borderLight,
                           ),
-                        );
-                      },
-                      child: _ConnectedSet(
-                        children: [
-                          for (final entry in [
-                            ('en', l10n.english),
-                            ('am', l10n.amharic),
-                            ('om', l10n.afaanOromo),
-                            ('ti', l10n.tigrinya),
-                            ('so', l10n.somali),
-                          ].asMap().entries)
-                            _SetRow(
-                              position: entry.key == 0
-                                  ? _RowPosition.first
-                                  : entry.key == 4
-                                      ? _RowPosition.last
-                                      : _RowPosition.middle,
-                              child: RadioListTile<String>(
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 14,
-                                ),
-                                value: entry.value.$1,
-                                title: Text(
-                                  entry.value.$2,
-                                  style:
-                                      AppTheme.ui(fontSize: 14, color: ink),
-                                ),
-                              ),
-                            ),
-                        ],
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(
+                            color: isDark
+                                ? AppTheme.borderDark
+                                : AppTheme.borderLight,
+                          ),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 4,
+                        ),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: prefs.appLanguageCode,
+                          isExpanded: true,
+                          items: [
+                            DropdownMenuItem(
+                                value: 'en', child: Text(l10n.english)),
+                            DropdownMenuItem(
+                                value: 'am', child: Text(l10n.amharic)),
+                            DropdownMenuItem(
+                                value: 'om', child: Text(l10n.afaanOromo)),
+                            DropdownMenuItem(
+                                value: 'ti', child: Text(l10n.tigrinya)),
+                            DropdownMenuItem(
+                                value: 'so', child: Text(l10n.somali)),
+                          ],
+                          onChanged: (value) async {
+                            if (value == null) return;
+                            await prefs.setAppLanguage(value);
+                            await appTheme.setLocale(Locale(value));
+                          },
+                        ),
                       ),
                     ),
                   ],
@@ -183,7 +189,8 @@ class SettingsScreen extends StatelessWidget {
                       title: Text(
                         bibleStore.catalog
                                 .where((p) =>
-                                    p.versionId == prefs.preferredBibleVersionId)
+                                    p.versionId ==
+                                    prefs.preferredBibleVersionId)
                                 .map((p) => p.name)
                                 .firstOrNull ??
                             prefs.preferredBibleVersionId,
@@ -197,9 +204,8 @@ class SettingsScreen extends StatelessWidget {
                         bible.currentVersion,
                         style: AppTheme.ui(
                           fontSize: 12,
-                          color: isDark
-                              ? AppTheme.inkSoftDark
-                              : AppTheme.inkSoft,
+                          color:
+                              isDark ? AppTheme.inkSoftDark : AppTheme.inkSoft,
                         ),
                       ),
                       trailing: const Icon(Icons.chevron_right),
@@ -285,6 +291,85 @@ class SettingsScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 20),
+                    Text(
+                      text('Font style', 'የፊደል ቅጥ'),
+                      style: AppTheme.ui(
+                        fontSize: 13,
+                        weight: FontWeight.w600,
+                        color: ink,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Builder(
+                      builder: (context) {
+                        final selectedFontId = fonts.fontSettings.useSystemFont
+                            ? 'system'
+                            : AvailableFont.defaultFonts
+                                    .where(
+                                      (f) =>
+                                          f.fontFamily == fonts.fontFamily &&
+                                          f.id != 'system',
+                                    )
+                                    .map((f) => f.id)
+                                    .firstOrNull ??
+                                'merriweather';
+                        return InputDecorator(
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: isDark
+                                ? AppTheme.surfaceDark
+                                : AppTheme.surfaceLight,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: isDark
+                                    ? AppTheme.borderDark
+                                    : AppTheme.borderLight,
+                              ),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: isDark
+                                    ? AppTheme.borderDark
+                                    : AppTheme.borderLight,
+                              ),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 4,
+                            ),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: selectedFontId,
+                              isExpanded: true,
+                              items: [
+                                for (final font in AvailableFont.defaultFonts)
+                                  DropdownMenuItem(
+                                    value: font.id,
+                                    child: Text(
+                                      font.name,
+                                      style: AppTheme.scripture(
+                                        fontSize: 15,
+                                        fontFamily: font.fontFamily,
+                                        useSystemFont: font.id == 'system',
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                              onChanged: (id) async {
+                                if (id == null) return;
+                                final font = AvailableFont.defaultFonts
+                                    .firstWhere((f) => f.id == id);
+                                await fonts.setAvailableFont(font);
+                              },
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 16),
                     _SliderSetting(
                       label: text('Scripture text size', 'የቅዱስ ጽሑፍ መጠን'),
                       valueLabel: fonts.fontSize.round().toString(),
@@ -525,16 +610,68 @@ class _ThemeNotificationSection extends StatelessWidget {
     final soft = isDark ? AppTheme.inkSoftDark : AppTheme.inkSoft;
 
     return _SettingsSection(
-      header: text('Theme notification', 'የጭብጥ ማሳወቂያ'),
+      header: text('Daily streak & verse', 'ዕለታዊ ስትሪክ እና ቃል'),
       children: [
         Text(
           text(
-            'Choose the Scripture need used for the daily 8:00 reminder.',
-            'ለዕለታዊ 8:00 ማሳወቂያ የቃሉን ጭብጥ ይምረጡ።',
+            'Morning: Verse of the Day. Evening (~7:00): a friendly nudge to keep your reading streak.',
+            'ጠዋት፦ የዛሬው ቃል። ማታ (~7:00)፦ የንባብ ስትሪክዎን ለመቀጠል ማሳሰቢያ።',
           ),
           style: AppTheme.ui(fontSize: 13, color: soft),
         ),
         const SizedBox(height: 12),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: Text(
+            text('Verse + streak reminders', 'ቃል እና ስትሪክ ማሳወቂያዎች'),
+            style: AppTheme.ui(fontSize: 14, weight: FontWeight.w600),
+          ),
+          subtitle: Text(
+            reminders.enabled
+                ? text(
+                    'On · verse ${reminders.hour.toString().padLeft(2, '0')}:${reminders.minute.toString().padLeft(2, '0')} · streak 19:00',
+                    'በርቷል · ቃል ${reminders.hour.toString().padLeft(2, '0')}:${reminders.minute.toString().padLeft(2, '0')} · ስትሪክ 19:00',
+                  )
+                : text('Off', 'ጠፍቷል'),
+            style: AppTheme.ui(fontSize: 12, color: soft),
+          ),
+          value: reminders.enabled,
+          onChanged: (value) async {
+            if (value) {
+              final engagement = context.read<EngagementProvider>();
+              final enabled = await reminders.scheduleDailyVerseReminder(
+                hour: 8,
+                minute: 0,
+                requestPermission: true,
+                streak: engagement.streakWithGrace(),
+                readToday: engagement.hasReadToday(),
+              );
+              if (!enabled && context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      text(
+                        'Could not enable reminders. Check notification permission.',
+                        'ማሳወቂያ ማንቃት አልተቻለም። ፈቃድ ያረጋግጡ።',
+                      ),
+                    ),
+                  ),
+                );
+              }
+            } else {
+              await reminders.disableDailyVerseReminder();
+            }
+          },
+        ),
+        const SizedBox(height: 8),
+        Text(
+          text(
+            'Optional theme label for the notification title:',
+            'ለማሳወቂያው አርዕስት አማራጭ ጭብጥ፦',
+          ),
+          style: AppTheme.ui(fontSize: 12, color: soft),
+        ),
+        const SizedBox(height: 8),
         Wrap(
           spacing: 8,
           runSpacing: 8,
@@ -546,8 +683,8 @@ class _ThemeNotificationSection extends StatelessWidget {
                 onSelected: (_) async {
                   final enabled = await reminders.enableThemeNotification(
                     theme: theme,
-                    hour: 8,
-                    minute: 0,
+                    hour: reminders.hour,
+                    minute: reminders.minute,
                   );
                   if (!enabled && context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -671,13 +808,21 @@ class _AudioStorageSection extends StatelessWidget {
                         final books = context.read<BibleProvider>().books;
                         final versionId =
                             context.read<BibleProvider>().currentVersion;
-                        final chapters = [
-                          for (final book in books)
-                            for (var chapter = 1;
-                                chapter <= book.chapters;
-                                chapter++)
-                              (bookId: book.id, chapter: chapter),
-                        ];
+                        if (books.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                text(
+                                  'Bible books are not ready yet. Try again in a moment.',
+                                  'መጻሕፍት ገና አልተዘጋጁም። ትንሽ ቆይተው እንደገና ይሞክሩ።',
+                                ),
+                              ),
+                            ),
+                          );
+                          return;
+                        }
+                        final chapterCount =
+                            books.fold<int>(0, (sum, b) => sum + b.chapters);
                         final confirmed = await showDialog<bool>(
                           context: context,
                           builder: (context) => AlertDialog(
@@ -686,9 +831,9 @@ class _AudioStorageSection extends StatelessWidget {
                             ),
                             content: Text(
                               text(
-                                '${chapters.length} chapters will download sequentially. '
-                                    'Actual size depends on the licensed fileset.',
-                                '${chapters.length} ምዕራፎች በተከታታይ ይወርዳሉ።',
+                                '$chapterCount chapters will download offline, '
+                                    'like installing a full Bible translation.',
+                                '$chapterCount ምዕራፎች ከመስመር ውጭ ይወርዳሉ።',
                               ),
                             ),
                             actions: [
@@ -703,10 +848,22 @@ class _AudioStorageSection extends StatelessWidget {
                             ],
                           ),
                         );
-                        if (confirmed == true) {
-                          await downloads.downloadChapters(
+                        if (confirmed == true && context.mounted) {
+                          await downloads.downloadFullBible(
                             versionId: versionId,
-                            chapters: chapters,
+                            books: [
+                              for (final book in books)
+                                (bookId: book.id, chapterCount: book.chapters),
+                            ],
+                          );
+                          if (!context.mounted) return;
+                          final message = downloads.error ??
+                              text(
+                                'Audio download finished.',
+                                'የድምጽ ማውረድ ተጠናቋል።',
+                              );
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(message)),
                           );
                         }
                       },

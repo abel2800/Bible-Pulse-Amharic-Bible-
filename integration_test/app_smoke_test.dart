@@ -16,7 +16,7 @@ void main() {
     expect(find.byType(MaterialApp), findsOneWidget);
     expect(find.text('Home'), findsWidgets);
 
-    await tester.tap(find.text('Settings').last);
+    await tester.tap(find.text('You').last);
     await tester.pump(const Duration(milliseconds: 400));
     expect(find.text('APPEARANCE'), findsOneWidget);
   });

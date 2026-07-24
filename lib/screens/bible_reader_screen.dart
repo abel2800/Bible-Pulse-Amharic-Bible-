@@ -5,14 +5,15 @@ import '../config/app_capabilities.dart';
 import '../providers/bible_provider.dart';
 import '../providers/color_theme_provider.dart';
 import '../providers/font_settings_provider.dart';
+import '../models/font_settings.dart';
 import '../providers/study_provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/engagement_provider.dart';
 import '../providers/navigation_provider.dart';
 import '../providers/parallel_reading_provider.dart';
+import '../providers/reminder_provider.dart';
 import '../utils/app_theme.dart';
 import '../widgets/book_selector_bottom_sheet.dart';
-import '../widgets/chapter_selector_sheet.dart';
 import '../widgets/version_selector_bottom_sheet.dart';
 import '../widgets/audio_player_bottom_sheet.dart';
 import '../widgets/design/bp_widgets.dart';
@@ -34,6 +35,7 @@ class _BibleReaderScreenState extends State<BibleReaderScreen> {
   int? _parallelBook;
   int? _parallelChapter;
   int? _lastAudioVerse;
+  String? _streakDayRecorded;
 
   @override
   void dispose() {
@@ -57,9 +59,30 @@ class _BibleReaderScreenState extends State<BibleReaderScreen> {
         audioService.hasActiveSession;
 
     if (bibleProvider.currentChapter.isNotEmpty) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) context.read<EngagementProvider>().recordReading();
-      });
+      final todayKey =
+          '${DateTime.now().year}-${DateTime.now().month}-${DateTime.now().day}';
+      if (_streakDayRecorded != todayKey) {
+        _streakDayRecorded = todayKey;
+        final engagement = context.read<EngagementProvider>();
+        final reminders = context.read<ReminderProvider>();
+        final messenger = ScaffoldMessenger.of(context);
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
+          final celebration = await engagement.recordReading();
+          await reminders.refreshStreakNotifications(
+            streak: engagement.streakWithGrace(),
+            readToday: engagement.hasReadToday(),
+          );
+          if (celebration != null && mounted) {
+            messenger.showSnackBar(
+              SnackBar(
+                content: Text(celebration),
+                behavior: SnackBarBehavior.floating,
+                duration: const Duration(seconds: 3),
+              ),
+            );
+          }
+        });
+      }
     }
     final selectedBook = bibleProvider.selectedBook;
     if (parallel.enabled &&
@@ -104,13 +127,13 @@ class _BibleReaderScreenState extends State<BibleReaderScreen> {
                           _ReaderChip(
                             label:
                                 '${bibleProvider.selectedBook!.name} ${bibleProvider.selectedChapter}',
-                            onTap: () =>
-                                _showChapterSelector(context, bibleProvider),
-                            onLongPress: () => _showBookSelector(context),
+                            isDark: readerTheme.isDark,
+                            onTap: () => _showBookSelector(context),
                           ),
                           const SizedBox(width: 8),
                           _ReaderChip(
                             label: bibleProvider.currentVersion,
+                            isDark: readerTheme.isDark,
                             onTap: () {
                               showModalBottomSheet(
                                 context: context,
@@ -124,6 +147,7 @@ class _BibleReaderScreenState extends State<BibleReaderScreen> {
                         ] else
                           _ReaderChip(
                             label: l10n.selectBook,
+                            isDark: readerTheme.isDark,
                             onTap: () => _showBookSelector(context),
                           ),
                         const Spacer(),
@@ -220,8 +244,8 @@ class _BibleReaderScreenState extends State<BibleReaderScreen> {
                                       bibleProvider.getVerseReference(verse);
                                   final isHighlighted =
                                       studyProvider.isHighlighted(reference);
-                                  final highlightColor =
-                                      studyProvider.getHighlightColor(reference);
+                                  final highlightColor = studyProvider
+                                      .getHighlightColor(reference);
                                   final isSpoken =
                                       audioService.currentVerse == verse.verse;
                                   final secondary = parallel.enabled
@@ -254,6 +278,9 @@ class _BibleReaderScreenState extends State<BibleReaderScreen> {
                                               readerTheme.verseNumberColor,
                                           fontSize: fontSettings.fontSize,
                                           lineHeight: fontSettings.lineHeight,
+                                          fontFamily: fontSettings.fontFamily,
+                                          useSystemFont:
+                                              fontSettings.useSystemFont,
                                         ),
                                         if (secondary != null) ...[
                                           const SizedBox(height: 6),
@@ -286,29 +313,18 @@ class _BibleReaderScreenState extends State<BibleReaderScreen> {
               ),
               if (bibleProvider.selectedBook != null)
                 Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: showAudioBar ? 72 : 18,
-                  child: Center(
-                    child: ReaderPlaybackControls(
-                      audioEnabled: capabilities.audio,
-                      onOpenPlayer: null,
-                    ),
-                  ),
-                ),
-              if (showAudioBar)
-                Positioned(
                   left: 16,
                   right: 16,
                   bottom: 8,
-                  child: _FloatingAudioBar(
-                    bookName: audioService.activeBookName ??
-                        bibleProvider.selectedBook?.name ??
-                        '',
-                    chapter: audioService.activeChapter ??
-                        bibleProvider.selectedChapter,
+                  child: _ReaderAudioBar(
+                    // Always reflects the chapter on screen, not whatever
+                    // chapter audio last happened to be loaded for, so the
+                    // label can never drift from what's being read.
+                    bookName: bibleProvider.selectedBook!.name,
+                    chapter: bibleProvider.selectedChapter,
+                    audioEnabled: capabilities.audio,
+                    showProgress: showAudioBar,
                     onExpand: () {
-                      if (bibleProvider.selectedBook == null) return;
                       showModalBottomSheet(
                         context: context,
                         backgroundColor: Colors.transparent,
@@ -433,9 +449,47 @@ class _BibleReaderScreenState extends State<BibleReaderScreen> {
                   const SizedBox(height: 20),
                   Consumer<FontSettingsProvider>(
                     builder: (context, provider, _) {
+                      final selectedFontId = provider.fontSettings.useSystemFont
+                          ? 'system'
+                          : AvailableFont.defaultFonts
+                                  .where(
+                                    (f) =>
+                                        f.fontFamily == provider.fontFamily &&
+                                        f.id != 'system',
+                                  )
+                                  .map((f) => f.id)
+                                  .firstOrNull ??
+                              'merriweather';
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          Text(
+                            'Font style',
+                            style: AppTheme.ui(
+                              fontSize: 14,
+                              weight: FontWeight.w600,
+                              color: isDark ? AppTheme.inkDark : AppTheme.ink,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          DropdownButton<String>(
+                            value: selectedFontId,
+                            isExpanded: true,
+                            items: [
+                              for (final font in AvailableFont.defaultFonts)
+                                DropdownMenuItem(
+                                  value: font.id,
+                                  child: Text(font.name),
+                                ),
+                            ],
+                            onChanged: (id) async {
+                              if (id == null) return;
+                              final font = AvailableFont.defaultFonts
+                                  .firstWhere((f) => f.id == id);
+                              await provider.setAvailableFont(font);
+                            },
+                          ),
+                          const SizedBox(height: 12),
                           Text(
                             'Text size · ${provider.fontSize.round()}',
                             style: AppTheme.ui(
@@ -526,45 +580,26 @@ class _BibleReaderScreenState extends State<BibleReaderScreen> {
   void _showBookSelector(BuildContext context) {
     showBookSelector(context);
   }
-
-  Future<void> _showChapterSelector(
-    BuildContext context,
-    BibleProvider bibleProvider,
-  ) async {
-    final book = bibleProvider.selectedBook;
-    if (book == null) return;
-    final chosen = await showChapterSelector(
-      context,
-      book: book.name,
-      chapterCount: book.chapters,
-      current: bibleProvider.selectedChapter,
-    );
-    if (chosen != null) {
-      await bibleProvider.loadChapter(book.id, chosen);
-    }
-  }
 }
 
 class _ReaderChip extends StatelessWidget {
   const _ReaderChip({
     required this.label,
     required this.onTap,
-    this.onLongPress,
+    required this.isDark,
   });
 
   final String label;
   final VoidCallback onTap;
-  final VoidCallback? onLongPress;
+  final bool isDark;
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Material(
-      color: isDark ? const Color(0xFF2A2A2A) : AppTheme.surface2Light,
+      color: isDark ? AppTheme.surface2Dark : AppTheme.surface2Light,
       borderRadius: BorderRadius.circular(10),
       child: InkWell(
         onTap: onTap,
-        onLongPress: onLongPress,
         borderRadius: BorderRadius.circular(10),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -573,7 +608,7 @@ class _ReaderChip extends StatelessWidget {
             style: AppTheme.ui(
               fontSize: 13,
               weight: FontWeight.w600,
-              color: isDark ? Colors.white : AppTheme.ink,
+              color: isDark ? AppTheme.inkDark : AppTheme.ink,
             ),
           ),
         ),
@@ -582,21 +617,99 @@ class _ReaderChip extends StatelessWidget {
   }
 }
 
-class _FloatingAudioBar extends StatelessWidget {
-  const _FloatingAudioBar({
+/// The one and only floating control at the bottom of the reader.
+///
+/// Book/chapter label and prev/next always follow whatever chapter is
+/// currently on screen (`bibleProvider.selectedBook`/`selectedChapter`) —
+/// never the audio session's chapter — so this bar can never show a chapter
+/// that doesn't match what's being read. Play/pause reflects audio state.
+class _ReaderAudioBar extends StatelessWidget {
+  const _ReaderAudioBar({
     required this.bookName,
     required this.chapter,
+    required this.audioEnabled,
+    required this.showProgress,
     required this.onExpand,
   });
 
   final String bookName;
   final int chapter;
+  final bool audioEnabled;
+  final bool showProgress;
   final VoidCallback onExpand;
+
+  Future<void> _stepChapter(BuildContext context, int delta) async {
+    final bible = context.read<BibleProvider>();
+    final audio = context.read<AudioService>();
+    final keepAudio =
+        audio.hasActiveSession || audio.isPlaying || audio.isLoading;
+
+    if (delta > 0) {
+      await bible.nextChapter();
+    } else {
+      await bible.previousChapter();
+    }
+
+    final book = bible.selectedBook;
+    if (book == null) return;
+
+    if (keepAudio && audio.enabled) {
+      await audio.playChapter(
+        bible.currentVersion,
+        book.id,
+        bible.selectedChapter,
+        bookName: book.name,
+      );
+    }
+  }
+
+  Future<void> _togglePlay(BuildContext context) async {
+    final bible = context.read<BibleProvider>();
+    final audio = context.read<AudioService>();
+    final book = bible.selectedBook;
+    if (book == null) return;
+
+    if (!audio.enabled) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Audio is not available in this build.')),
+      );
+      return;
+    }
+
+    if (audio.isPlaying) {
+      await audio.pause();
+      return;
+    }
+
+    final sameChapter = audio.hasActiveSession &&
+        audio.activeBookId == book.id &&
+        audio.activeChapter == bible.selectedChapter &&
+        audio.activeVersion == bible.currentVersion &&
+        audio.duration > Duration.zero;
+
+    if (sameChapter) {
+      await audio.play();
+    } else {
+      await audio.playChapter(
+        bible.currentVersion,
+        book.id,
+        bible.selectedChapter,
+        bookName: book.name,
+      );
+    }
+
+    if (context.mounted && audio.lastError != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(audio.lastError!)),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final audioService = context.watch<AudioService>();
+    final faint = isDark ? AppTheme.inkFaintDark : AppTheme.inkFaint;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
@@ -610,75 +723,83 @@ class _FloatingAudioBar extends StatelessWidget {
             color: isDark ? AppTheme.borderDark : AppTheme.borderLight,
           ),
         ),
-        child: InkWell(
-          onTap: onExpand,
-          borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-            child: Row(
-              children: [
-                _GoldPlayButton(
-                  isPlaying: audioService.isPlaying,
-                  isLoading: audioService.isLoading,
-                  onPressed: () {
-                    if (audioService.isPlaying) {
-                      audioService.pause();
-                    } else {
-                      audioService.play();
-                    }
-                  },
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        bookName.isEmpty ? 'Audio' : '$bookName $chapter',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTheme.ui(
-                          fontSize: 13,
-                          weight: FontWeight.w600,
-                          color: isDark ? AppTheme.inkDark : AppTheme.ink,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(6, 8, 12, 8),
+          child: Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.chevron_left_rounded),
+                color: faint,
+                onPressed: () => _stepChapter(context, -1),
+              ),
+              _GoldPlayButton(
+                isPlaying: audioService.isPlaying,
+                isLoading: audioService.isLoading,
+                onPressed: audioEnabled ? () => _togglePlay(context) : null,
+              ),
+              IconButton(
+                icon: const Icon(Icons.chevron_right_rounded),
+                color: faint,
+                onPressed: () => _stepChapter(context, 1),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: InkWell(
+                  onTap: onExpand,
+                  borderRadius: BorderRadius.circular(12),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          '$bookName $chapter',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTheme.ui(
+                            fontSize: 13,
+                            weight: FontWeight.w600,
+                            color: isDark ? AppTheme.inkDark : AppTheme.ink,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 6),
-                      StreamBuilder<Duration>(
-                        stream: audioService.positionStream,
-                        builder: (context, snapshot) {
-                          final position =
-                              snapshot.data ?? audioService.position;
-                          final duration = audioService.duration;
-                          final progress = duration.inMilliseconds > 0
-                              ? position.inMilliseconds /
-                                  duration.inMilliseconds
-                              : 0.0;
-                          return ClipRRect(
-                            borderRadius: BorderRadius.circular(2),
-                            child: LinearProgressIndicator(
-                              value: progress.clamp(0.0, 1.0),
-                              minHeight: 4,
-                              backgroundColor: isDark
-                                  ? AppTheme.borderDark
-                                  : AppTheme.borderLight,
-                              color: AppTheme.gold,
-                            ),
-                          );
-                        },
-                      ),
-                    ],
+                        if (showProgress) ...[
+                          const SizedBox(height: 6),
+                          StreamBuilder<Duration>(
+                            stream: audioService.positionStream,
+                            builder: (context, snapshot) {
+                              final position =
+                                  snapshot.data ?? audioService.position;
+                              final duration = audioService.duration;
+                              final progress = duration.inMilliseconds > 0
+                                  ? position.inMilliseconds /
+                                      duration.inMilliseconds
+                                  : 0.0;
+                              return ClipRRect(
+                                borderRadius: BorderRadius.circular(2),
+                                child: LinearProgressIndicator(
+                                  value: progress.clamp(0.0, 1.0),
+                                  minHeight: 4,
+                                  backgroundColor: isDark
+                                      ? AppTheme.borderDark
+                                      : AppTheme.borderLight,
+                                  color: AppTheme.gold,
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ],
+                    ),
                   ),
                 ),
-                const SizedBox(width: 8),
-                Icon(
-                  Icons.open_in_full_rounded,
-                  size: 18,
-                  color: isDark ? AppTheme.inkFaintDark : AppTheme.inkFaint,
-                ),
-              ],
-            ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.open_in_full_rounded, size: 18),
+                color: faint,
+                onPressed: onExpand,
+              ),
+            ],
           ),
         ),
       ),
@@ -695,7 +816,7 @@ class _GoldPlayButton extends StatelessWidget {
 
   final bool isPlaying;
   final bool isLoading;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {

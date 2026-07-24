@@ -265,9 +265,8 @@ class BiblePulseApp extends StatelessWidget {
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,
             themeMode: themeProvider.themeMode,
-            locale: userPrefs.ready
-                ? userPrefs.appLocale
-                : themeProvider.locale,
+            locale:
+                userPrefs.ready ? userPrefs.appLocale : themeProvider.locale,
             supportedLocales: AppLocalizations.supportedLocales,
             localizationsDelegates: const [
               AppLocalizations.delegate,

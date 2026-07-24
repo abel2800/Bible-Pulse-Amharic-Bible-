@@ -134,6 +134,12 @@ abstract class AppLocalizations {
   /// **'Good Evening'**
   String get goodEvening;
 
+  /// No description provided for @goodNight.
+  ///
+  /// In en, this message translates to:
+  /// **'Good Night'**
+  String get goodNight;
+
   /// No description provided for @welcome.
   ///
   /// In en, this message translates to:

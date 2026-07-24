@@ -16,6 +16,10 @@ class ColorThemeProvider extends ChangeNotifier {
       final theme = ReaderColorTheme.getById(themeId);
       if (theme != null) {
         _currentTheme = theme;
+        // Persist normalized id if an old preset was stored.
+        if (theme.id != themeId) {
+          await prefs.setString('reader_theme', theme.id);
+        }
       }
 
       notifyListeners();
@@ -32,11 +36,21 @@ class ColorThemeProvider extends ChangeNotifier {
       _currentTheme = theme;
 
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('reader_theme', themeId);
+      await prefs.setString('reader_theme', theme.id);
 
       notifyListeners();
     } catch (e) {
       debugPrint('Error setting theme: $e');
     }
+  }
+
+  /// Keep scripture page in step with app light/dark chrome.
+  Future<void> syncWithAppBrightness(bool isDark) async {
+    final targetId = isDark ? 'dark' : 'light';
+    if (_currentTheme.id == targetId) return;
+    // Don't yank the user out of Eye Comfort when flipping app chrome
+    // unless they are already on a light/dark scripture theme.
+    if (_currentTheme.id == 'eye_comfort') return;
+    await setTheme(targetId);
   }
 }

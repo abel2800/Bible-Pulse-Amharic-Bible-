@@ -43,68 +43,58 @@ class ReaderColorTheme {
     };
   }
 
+  /// Primary reader looks: Light, Dark (manuscript navy), Eye Comfort.
   static List<ReaderColorTheme> get presets => [
         const ReaderColorTheme(
           id: 'light',
           name: 'Light',
           backgroundColor: Color(0xFFFFFFFF),
-          textColor: Color(0xFF201A10),
+          textColor: Color(0xFF1A1A1A),
           verseNumberColor: Color(0xFFC08A28),
-          headerColor: Color(0xFF201A10),
+          headerColor: Color(0xFF1A1A1A),
           isDark: false,
         ),
+        // Same manuscript navy + parchment ink as the home dashboard.
         const ReaderColorTheme(
-          id: 'sepia',
-          name: 'Sepia',
+          id: 'dark',
+          name: 'Dark',
+          backgroundColor: Color(0xFF10182A),
+          textColor: Color(0xFFF1E9D6),
+          verseNumberColor: Color(0xFFE8C766),
+          headerColor: Color(0xFFF1E9D6),
+          isDark: true,
+        ),
+        const ReaderColorTheme(
+          id: 'eye_comfort',
+          name: 'Eye Comfort',
           backgroundColor: Color(0xFFF4ECD8),
-          textColor: Color(0xFF5C4A2E),
+          textColor: Color(0xFF4A3B28),
           verseNumberColor: Color(0xFFC08A28),
           headerColor: Color(0xFF3E2F1F),
           isDark: false,
         ),
-        const ReaderColorTheme(
-          id: 'dark',
-          name: 'Dark',
-          backgroundColor: Color(0xFF1E1E1E),
-          textColor: Color(0xFFF1E9D6),
-          verseNumberColor: Color(0xFFE8C766),
-          headerColor: Color(0xFFF1E9D6),
-          isDark: true,
-        ),
-        const ReaderColorTheme(
-          id: 'black',
-          name: 'True Black (AMOLED)',
-          backgroundColor: Color(0xFF000000),
-          textColor: Color(0xFFF1E9D6),
-          verseNumberColor: Color(0xFFE8C766),
-          headerColor: Color(0xFFF1E9D6),
-          isDark: true,
-        ),
-        const ReaderColorTheme(
-          id: 'blue_night',
-          name: 'Blue Night',
-          backgroundColor: Color(0xFF0D1B2A),
-          textColor: Color(0xFFE0E1DD),
-          verseNumberColor: Color(0xFFE8C766),
-          headerColor: Color(0xFFB0C4DE),
-          isDark: true,
-        ),
-        const ReaderColorTheme(
-          id: 'forest',
-          name: 'Forest',
-          backgroundColor: Color(0xFF2C3E2C),
-          textColor: Color(0xFFE8F5E9),
-          verseNumberColor: Color(0xFFE8C766),
-          headerColor: Color(0xFFC8E6C9),
-          isDark: true,
-        ),
       ];
 
-  static ReaderColorTheme? getById(String id) {
-    try {
-      return presets.firstWhere((theme) => theme.id == id);
-    } catch (e) {
-      return null;
+  /// Maps legacy theme ids saved in prefs to the current three presets.
+  static String normalizeId(String id) {
+    switch (id) {
+      case 'sepia':
+      case 'parchment':
+        return 'eye_comfort';
+      case 'black':
+      case 'blue_night':
+      case 'forest':
+        return 'dark';
+      default:
+        return id;
     }
+  }
+
+  static ReaderColorTheme? getById(String id) {
+    final normalized = normalizeId(id);
+    for (final theme in presets) {
+      if (theme.id == normalized) return theme;
+    }
+    return null;
   }
 }

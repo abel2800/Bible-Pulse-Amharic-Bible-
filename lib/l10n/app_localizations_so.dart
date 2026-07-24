@@ -24,6 +24,9 @@ class AppLocalizationsSo extends AppLocalizations {
   String get goodEvening => 'Fiid wanaagsan';
 
   @override
+  String get goodNight => 'Habeen wanaagsan';
+
+  @override
   String get welcome => 'Soo dhawoow';
 
   @override

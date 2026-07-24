@@ -24,6 +24,9 @@ class AppLocalizationsTi extends AppLocalizations {
   String get goodEvening => 'ከመይ አምሲኻ';
 
   @override
+  String get goodNight => 'ሰናይ ለይቲ';
+
+  @override
   String get welcome => 'እንቋዕ ደሓን መጻእኩም';
 
   @override

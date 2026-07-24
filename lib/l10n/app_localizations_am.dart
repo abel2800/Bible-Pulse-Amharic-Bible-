@@ -24,6 +24,9 @@ class AppLocalizationsAm extends AppLocalizations {
   String get goodEvening => 'እንደምን አመሽህ';
 
   @override
+  String get goodNight => 'መልካም ሌሊት';
+
+  @override
   String get welcome => 'እንኳን ደህና መጡ';
 
   @override

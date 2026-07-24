@@ -24,7 +24,8 @@ class FallbackMaterialLocalizationsDelegate
   }
 
   @override
-  bool shouldReload(covariant LocalizationsDelegate<MaterialLocalizations> old) =>
+  bool shouldReload(
+          covariant LocalizationsDelegate<MaterialLocalizations> old) =>
       false;
 }
 

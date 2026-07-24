@@ -4,18 +4,22 @@ import '../models/bible_verse.dart';
 import '../models/bible_book.dart';
 import '../services/bible_service.dart';
 import '../services/bible_search_service.dart';
+import '../services/daily_verse_service.dart';
 
 class BibleProvider with ChangeNotifier {
   BibleProvider({BibleService? bibleService})
       : _bibleService = bibleService ?? BibleService() {
     _searchService = BibleSearchService(bibleService: _bibleService);
+    _dailyVerseService = DailyVerseService(bibleService: _bibleService);
     ready = _initialize();
   }
 
   final BibleService _bibleService;
   late final BibleSearchService _searchService;
+  late final DailyVerseService _dailyVerseService;
   late final Future<void> ready;
   int _searchRequest = 0;
+  String? _verseOfTheDayDateKey;
 
   String _currentVersion = 'WEB';
   List<BibleBook> _books = [];
@@ -46,12 +50,19 @@ class BibleProvider with ChangeNotifier {
   BibleVerse? _lastReadVerse;
   BibleVerse? _verseOfTheDay;
 
+  static String _localDateKey([DateTime? now]) {
+    final local = now ?? DateTime.now();
+    final y = local.year.toString().padLeft(4, '0');
+    final m = local.month.toString().padLeft(2, '0');
+    final d = local.day.toString().padLeft(2, '0');
+    return '$y-$m-$d';
+  }
+
   Future<void> _initialize() async {
     final prefs = await SharedPreferences.getInstance();
-    _currentVersion =
-        prefs.getString('preferred_bible_version') ??
-            prefs.getString('last_read_version') ??
-            'WEB';
+    _currentVersion = prefs.getString('preferred_bible_version') ??
+        prefs.getString('last_read_version') ??
+        'WEB';
 
     await loadBooks();
     if (_books.isEmpty && _currentVersion != 'WEB') {
@@ -60,13 +71,7 @@ class BibleProvider with ChangeNotifier {
       await loadBooks();
     }
     if (_books.isNotEmpty) {
-      final dailyChapter =
-          await _bibleService.getChapter(_currentVersion, 43, 3);
-      if (dailyChapter.isNotEmpty) {
-        final day =
-            DateTime.now().toUtc().difference(DateTime.utc(2024)).inDays;
-        _verseOfTheDay = dailyChapter[day % dailyChapter.length];
-      }
+      await refreshVerseOfTheDay();
 
       final bookId = prefs.getInt('last_read_book') ?? 1;
       final chapter = prefs.getInt('last_read_chapter') ?? 1;
@@ -77,6 +82,29 @@ class BibleProvider with ChangeNotifier {
       _lastReadVerse = verseIndex == -1
           ? (_currentChapter.isEmpty ? null : _currentChapter.first)
           : _currentChapter[verseIndex];
+    }
+  }
+
+  /// Reloads Verse of the Day when the local calendar day changes.
+  Future<void> refreshVerseOfTheDay({bool force = false}) async {
+    final key = _localDateKey();
+    if (!force && _verseOfTheDay != null && _verseOfTheDayDateKey == key) {
+      return;
+    }
+    try {
+      _verseOfTheDay = await _dailyVerseService.verseForToday(
+        versionId: _currentVersion,
+      );
+      // Fall back to WEB if preferred version lacks the chapter.
+      if (_verseOfTheDay == null && _currentVersion != 'WEB') {
+        _verseOfTheDay = await _dailyVerseService.verseForToday(
+          versionId: 'WEB',
+        );
+      }
+      _verseOfTheDayDateKey = key;
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error loading verse of the day: $e');
     }
   }
 
@@ -131,6 +159,7 @@ class BibleProvider with ChangeNotifier {
     } else if (_books.isNotEmpty) {
       await loadChapter(_books.first.id, 1);
     }
+    await refreshVerseOfTheDay(force: true);
   }
 
   Future<void> nextChapter() async {

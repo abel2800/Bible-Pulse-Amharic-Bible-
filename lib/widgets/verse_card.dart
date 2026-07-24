@@ -18,6 +18,8 @@ class VerseCard extends StatelessWidget {
   final Color? verseNumberColor;
   final double fontSize;
   final double lineHeight;
+  final String? fontFamily;
+  final bool useSystemFont;
 
   const VerseCard({
     super.key,
@@ -33,6 +35,8 @@ class VerseCard extends StatelessWidget {
     this.verseNumberColor,
     this.fontSize = 16,
     this.lineHeight = 1.75,
+    this.fontFamily,
+    this.useSystemFont = false,
   });
 
   @override
@@ -49,7 +53,13 @@ class VerseCard extends StatelessWidget {
             : Colors.transparent;
 
     final body = isDropCap
-        ? _DropCapVerse(text: verse.text, color: ink, fontSize: fontSize)
+        ? _DropCapVerse(
+            text: verse.text,
+            color: ink,
+            fontSize: fontSize,
+            fontFamily: fontFamily,
+            useSystemFont: useSystemFont,
+          )
         : Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -75,6 +85,8 @@ class VerseCard extends StatelessWidget {
                     fontSize: fontSize,
                     height: lineHeight,
                     color: ink,
+                    fontFamily: fontFamily,
+                    useSystemFont: useSystemFont,
                   ),
                 ),
               ),
@@ -127,11 +139,15 @@ class _DropCapVerse extends StatelessWidget {
     required this.text,
     required this.color,
     required this.fontSize,
+    this.fontFamily,
+    this.useSystemFont = false,
   });
 
   final String text;
   final Color color;
   final double fontSize;
+  final String? fontFamily;
+  final bool useSystemFont;
 
   @override
   Widget build(BuildContext context) {
@@ -164,6 +180,8 @@ class _DropCapVerse extends StatelessWidget {
               fontSize: fontSize,
               height: 1.75,
               color: color,
+              fontFamily: fontFamily,
+              useSystemFont: useSystemFont,
             ),
           ),
         ),

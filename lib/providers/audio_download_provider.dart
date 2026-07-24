@@ -70,6 +70,21 @@ class AudioDownloadProvider extends ChangeNotifier {
     );
   }
 
+  /// Offline-cache every chapter across the given books (full Bible audio).
+  Future<void> downloadFullBible({
+    required String versionId,
+    required List<({int bookId, int chapterCount})> books,
+  }) {
+    return downloadChapters(
+      versionId: versionId,
+      chapters: [
+        for (final book in books)
+          for (var chapter = 1; chapter <= book.chapterCount; chapter++)
+            (bookId: book.bookId, chapter: chapter),
+      ],
+    );
+  }
+
   Future<void> downloadChapters({
     required String versionId,
     required List<({int bookId, int chapter})> chapters,
@@ -146,6 +161,8 @@ class AudioDownloadProvider extends ChangeNotifier {
   }
 
   Future<bool> _isUnmetered() async {
+    // Browsers manage their own connectivity; don't block downloads on web.
+    if (kIsWeb) return true;
     final results = await Connectivity().checkConnectivity();
     return results.contains(ConnectivityResult.wifi) ||
         results.contains(ConnectivityResult.ethernet);
